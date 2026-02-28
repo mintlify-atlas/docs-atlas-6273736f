@@ -1,0 +1,106 @@
+{
+  "projectType": "framework",
+  "projectName": "Laravel",
+  "projectDescription": "A web application framework with expressive, elegant syntax for building modern PHP applications.",
+  "theme": "maple",
+  "primaryColor": "#FF2D20",
+  "lightColor": "#FFE5E5",
+  "darkColor": "#B01F15",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/application-structure",
+              "architecture/service-providers",
+              "architecture/middleware"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/routing",
+              "concepts/controllers",
+              "concepts/views",
+              "concepts/eloquent-orm",
+              "concepts/database-migrations"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment",
+              "configuration/database",
+              "configuration/cache",
+              "configuration/session",
+              "configuration/queue"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/artisan-console",
+              "development/testing",
+              "development/deployment",
+              "development/optimization"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Project Structure",
+            "pages": [
+              "reference/directory-structure",
+              "reference/composer-scripts"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "reference/changelog",
+              "reference/contributing",
+              "reference/license"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Expressive routing engine with named routes and route groups",
+    "Powerful Eloquent ORM for database interactions",
+    "Database migrations and schema builder",
+    "Artisan console commands for scaffolding and development",
+    "Service container for dependency injection",
+    "Middleware pipeline for request filtering",
+    "Queue system for background job processing",
+    "Blade templating engine with component support"
+  ],
+  "publicApiSurface": [
+    "Route::get()",
+    "Route::post()",
+    "Route::resource()",
+    "Artisan::command()",
+    "Eloquent Model class",
+    "Database migrations",
+    "Service Providers",
+    "Middleware",
+    "Controllers",
+    "Blade views and components"
+  ]
+}
