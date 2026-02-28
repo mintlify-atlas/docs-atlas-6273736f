@@ -1,0 +1,372 @@
+---
+title: Cache configuration
+description: Configure caching with database, Redis, Memcached, and file-based drivers
+---
+
+## Overview
+
+Caching improves application performance by storing frequently accessed data. Laravel provides a unified API for various cache backends, configured in `config/cache.php`.
+
+## Default Cache Store
+
+```bash .env
+CACHE_STORE=database
+```
+
+```php config/cache.php
+'default' => env('CACHE_STORE', 'database'),
+```
+
+## Available Cache Drivers
+
+Laravel supports multiple cache drivers:
+
+- `array` - In-memory cache (testing only)
+- `database` - Database table storage
+- `file` - File-based storage
+- `memcached` - Memcached server
+- `redis` - Redis server
+- `dynamodb` - Amazon DynamoDB
+- `octane` - Laravel Octane cache
+- `failover` - Fallback between multiple stores
+- `null` - No caching (testing)
+
+## Array Cache
+
+Stores cache in memory during request. Perfect for testing.
+
+```php config/cache.php
+'array' => [
+    'driver' => 'array',
+    'serialize' => false,
+],
+```
+
+<Warning>The array cache is cleared after each request. Only use for testing.</Warning>
+
+## Database Cache
+
+Stores cache in a database table. Good for shared hosting or when Redis isn't available.
+
+### Environment Variables
+
+```bash .env
+CACHE_STORE=database
+DB_CACHE_TABLE=cache
+```
+
+### Configuration
+
+```php config/cache.php
+'database' => [
+    'driver' => 'database',
+    'connection' => env('DB_CACHE_CONNECTION'),
+    'table' => env('DB_CACHE_TABLE', 'cache'),
+    'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),
+    'lock_table' => env('DB_CACHE_LOCK_TABLE'),
+],
+```
+
+### Setup
+
+Create the cache table using the migration:
+
+```bash
+php artisan migrate
+```
+
+The cache table migration is included in Laravel by default at:
+`database/migrations/0001_01_01_000001_create_cache_table.php`
+
+<Info>The database cache driver requires a cache table to be created via migrations.</Info>
+
+## File Cache
+
+Stores cache as files on disk.
+
+```php config/cache.php
+'file' => [
+    'driver' => 'file',
+    'path' => storage_path('framework/cache/data'),
+    'lock_path' => storage_path('framework/cache/data'),
+],
+```
+
+<Note>Ensure the cache directory is writable by the web server.</Note>
+
+## Memcached Cache
+
+Uses Memcached for distributed caching.
+
+### Environment Variables
+
+```bash .env
+CACHE_STORE=memcached
+MEMCACHED_HOST=127.0.0.1
+MEMCACHED_PORT=11211
+MEMCACHED_USERNAME=
+MEMCACHED_PASSWORD=
+```
+
+### Configuration
+
+```php config/cache.php
+'memcached' => [
+    'driver' => 'memcached',
+    'persistent_id' => env('MEMCACHED_PERSISTENT_ID'),
+    'sasl' => [
+        env('MEMCACHED_USERNAME'),
+        env('MEMCACHED_PASSWORD'),
+    ],
+    'options' => [
+        // Memcached::OPT_CONNECT_TIMEOUT => 2000,
+    ],
+    'servers' => [
+        [
+            'host' => env('MEMCACHED_HOST', '127.0.0.1'),
+            'port' => env('MEMCACHED_PORT', 11211),
+            'weight' => 100,
+        ],
+    ],
+],
+```
+
+<Accordion title="Multiple Memcached Servers">
+  You can add multiple servers for load distribution:
+  
+  ```php
+  'servers' => [
+      ['host' => '127.0.0.1', 'port' => 11211, 'weight' => 100],
+      ['host' => '127.0.0.2', 'port' => 11211, 'weight' => 100],
+  ],
+  ```
+</Accordion>
+
+## Redis Cache
+
+Uses Redis for high-performance caching. Recommended for production.
+
+### Environment Variables
+
+```bash .env
+CACHE_STORE=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_CACHE_DB=1
+```
+
+### Configuration
+
+```php config/cache.php
+'redis' => [
+    'driver' => 'redis',
+    'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
+    'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
+],
+```
+
+<Info>Redis cache uses database `1` by default to separate it from other Redis data.</Info>
+
+## DynamoDB Cache
+
+Uses Amazon DynamoDB for distributed caching.
+
+### Environment Variables
+
+```bash .env
+CACHE_STORE=dynamodb
+AWS_ACCESS_KEY_ID=your-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_DEFAULT_REGION=us-east-1
+DYNAMODB_CACHE_TABLE=cache
+```
+
+### Configuration
+
+```php config/cache.php
+'dynamodb' => [
+    'driver' => 'dynamodb',
+    'key' => env('AWS_ACCESS_KEY_ID'),
+    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+    'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    'table' => env('DYNAMODB_CACHE_TABLE', 'cache'),
+    'endpoint' => env('DYNAMODB_ENDPOINT'),
+],
+```
+
+## Octane Cache
+
+Uses Laravel Octane's in-memory cache.
+
+```php config/cache.php
+'octane' => [
+    'driver' => 'octane',
+],
+```
+
+<Note>Requires Laravel Octane to be installed and running.</Note>
+
+## Failover Cache
+
+Automatically falls back to secondary cache if primary fails.
+
+```php config/cache.php
+'failover' => [
+    'driver' => 'failover',
+    'stores' => [
+        'database',
+        'array',
+    ],
+],
+```
+
+<Tip>Use failover to ensure cache availability even when primary cache is down.</Tip>
+
+## Cache Key Prefix
+
+Prevents key collisions when multiple applications share the same cache server.
+
+```php config/cache.php
+'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+```
+
+```bash .env
+CACHE_PREFIX=myapp-cache-
+```
+
+## Using the Cache
+
+### Storing Items
+
+```php
+use Illuminate\Support\Facades\Cache;
+
+// Store forever
+Cache::put('key', 'value');
+
+// Store for duration
+Cache::put('key', 'value', $seconds);
+Cache::put('key', 'value', now()->addMinutes(10));
+
+// Store if doesn't exist
+Cache::add('key', 'value', $seconds);
+
+// Store forever
+Cache::forever('key', 'value');
+```
+
+### Retrieving Items
+
+```php
+// Get value
+$value = Cache::get('key');
+
+// Get with default
+$value = Cache::get('key', 'default');
+
+// Get and delete
+$value = Cache::pull('key');
+
+// Remember (get or store)
+$value = Cache::remember('users', $seconds, function () {
+    return DB::table('users')->get();
+});
+```
+
+### Removing Items
+
+```php
+// Delete specific key
+Cache::forget('key');
+
+// Clear all cache
+Cache::flush();
+```
+
+### Using Multiple Stores
+
+```php
+// Use specific store
+Cache::store('redis')->put('key', 'value');
+$value = Cache::store('database')->get('key');
+```
+
+## Cache Tags
+
+Group related cache items (Redis and Memcached only):
+
+```php
+Cache::tags(['people', 'authors'])->put('john', $john, $seconds);
+
+// Retrieve tagged items
+$john = Cache::tags(['people', 'authors'])->get('john');
+
+// Flush all items with tag
+Cache::tags(['people'])->flush();
+```
+
+<Warning>Cache tags are only supported by `memcached` and `redis` drivers.</Warning>
+
+## Cache Events
+
+Listen to cache events:
+
+```php
+use Illuminate\Cache\Events\CacheHit;
+use Illuminate\Cache\Events\CacheMissed;
+use Illuminate\Support\Facades\Event;
+
+Event::listen(CacheHit::class, function (CacheHit $event) {
+    // $event->key
+    // $event->value
+});
+
+Event::listen(CacheMissed::class, function (CacheMissed $event) {
+    // $event->key
+});
+```
+
+## Artisan Commands
+
+```bash
+# Clear application cache
+php artisan cache:clear
+
+# Clear specific cache store
+php artisan cache:clear --store=redis
+
+# Create cache table migration
+php artisan cache:table
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use Redis for production">
+    Redis offers the best performance and features for production caching.
+  </Step>
+
+  <Step title="Set appropriate TTLs">
+    Always set expiration times to prevent stale data and memory issues.
+  </Step>
+
+  <Step title="Use cache tags">
+    Group related items with tags for easier invalidation.
+  </Step>
+
+  <Step title="Monitor cache hit rates">
+    Track cache effectiveness and adjust strategy accordingly.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Session Configuration" icon="fingerprint" href="/configuration/session">
+    Configure session storage
+  </Card>
+  <Card title="Queue Configuration" icon="list-check" href="/configuration/queue">
+    Set up background job processing
+  </Card>
+</CardGroup>

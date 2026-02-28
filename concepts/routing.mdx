@@ -1,0 +1,281 @@
+---
+title: Routing
+description: Learn how to define routes in Laravel to handle HTTP requests and map them to controller actions or closures
+---
+
+Laravel's routing system provides a clean and expressive way to define application endpoints. Routes are defined in the `routes/` directory and support various HTTP methods, parameters, and middleware.
+
+## Basic Routing
+
+Routes are typically defined in `routes/web.php` for web requests and `routes/api.php` for API endpoints.
+
+### Simple Route
+
+The most basic route accepts a URI and a closure:
+
+```php routes/web.php
+Route::get('/', function () {
+    return view('welcome');
+});
+```
+
+<Info>
+This route returns the `welcome` view when users visit the root URL of your application.
+</Info>
+
+## Available Router Methods
+
+Laravel's router allows you to register routes that respond to any HTTP verb:
+
+<CodeGroup>
+
+```php GET Request
+Route::get('/users', function () {
+    return 'List of users';
+});
+```
+
+```php POST Request
+Route::post('/users', function () {
+    return 'Create a new user';
+});
+```
+
+```php PUT/PATCH Request
+Route::put('/users/{id}', function ($id) {
+    return 'Update user ' . $id;
+});
+
+Route::patch('/users/{id}', function ($id) {
+    return 'Partially update user ' . $id;
+});
+```
+
+```php DELETE Request
+Route::delete('/users/{id}', function ($id) {
+    return 'Delete user ' . $id;
+});
+```
+
+</CodeGroup>
+
+## Route Parameters
+
+You can capture segments of the URI using route parameters:
+
+### Required Parameters
+
+```php
+Route::get('/users/{id}', function ($id) {
+    return 'User ID: ' . $id;
+});
+
+Route::get('/posts/{post}/comments/{comment}', function ($postId, $commentId) {
+    return 'Post: ' . $postId . ', Comment: ' . $commentId;
+});
+```
+
+### Optional Parameters
+
+```php
+Route::get('/users/{name?}', function ($name = null) {
+    return $name ? 'User: ' . $name : 'All users';
+});
+
+Route::get('/posts/{id?}', function ($id = 'default') {
+    return 'Post ID: ' . $id;
+});
+```
+
+## Named Routes
+
+Named routes allow you to conveniently generate URLs or redirects:
+
+```php
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->name('dashboard');
+
+Route::get('/profile', function () {
+    return view('profile');
+})->name('profile.view');
+```
+
+Generate URLs to named routes:
+
+```php
+// Generate URL
+$url = route('dashboard');
+
+// Generate URL with parameters
+$url = route('profile.view', ['id' => 1]);
+
+// Redirect to named route
+return redirect()->route('dashboard');
+```
+
+## Route Groups
+
+Route groups allow you to share attributes across multiple routes:
+
+### Middleware Groups
+
+```php
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    });
+    
+    Route::get('/profile', function () {
+        return view('profile');
+    });
+});
+```
+
+### Prefix Groups
+
+```php
+Route::prefix('admin')->group(function () {
+    Route::get('/users', function () {
+        // Matches /admin/users
+    });
+    
+    Route::get('/posts', function () {
+        // Matches /admin/posts
+    });
+});
+```
+
+### Name Prefix Groups
+
+```php
+Route::name('admin.')->group(function () {
+    Route::get('/users', function () {
+        // Route named "admin.users"
+    })->name('users');
+});
+```
+
+## Controller Routes
+
+For better organization, routes often point to controller methods:
+
+```php
+use App\Http\Controllers\UserController;
+
+Route::get('/users', [UserController::class, 'index']);
+Route::get('/users/{id}', [UserController::class, 'show']);
+Route::post('/users', [UserController::class, 'store']);
+Route::put('/users/{id}', [UserController::class, 'update']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+```
+
+### Resource Controllers
+
+Laravel provides resource routing for CRUD operations:
+
+```php
+Route::resource('posts', PostController::class);
+```
+
+This single line creates multiple routes:
+
+| Method | URI | Action | Route Name |
+|--------|-----|--------|------------|
+| GET | /posts | index | posts.index |
+| GET | /posts/create | create | posts.create |
+| POST | /posts | store | posts.store |
+| GET | /posts/{post} | show | posts.show |
+| GET | /posts/{post}/edit | edit | posts.edit |
+| PUT/PATCH | /posts/{post} | update | posts.update |
+| DELETE | /posts/{post} | destroy | posts.destroy |
+
+## Console Routes
+
+Define Artisan commands in `routes/console.php`:
+
+```php routes/console.php
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+```
+
+<Tip>
+Run the command with `php artisan inspire` to see an inspiring quote in your console.
+</Tip>
+
+## Route Configuration
+
+Routing is configured in `bootstrap/app.php`:
+
+```php bootstrap/app.php
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    // ...
+```
+
+<Note>
+The `health` parameter automatically creates a health check endpoint at `/up` for monitoring application status.
+</Note>
+
+## Route Model Binding
+
+Automatically inject model instances into your routes:
+
+### Implicit Binding
+
+```php
+use App\Models\User;
+
+Route::get('/users/{user}', function (User $user) {
+    return $user->email;
+});
+```
+
+### Explicit Binding
+
+```php
+use App\Models\User;
+
+Route::get('/users/{user}', function (User $user) {
+    return $user;
+})->where('user', '[0-9]+');
+```
+
+## Route Caching
+
+For production environments, cache your routes for faster registration:
+
+```bash
+# Cache routes
+php artisan route:cache
+
+# Clear route cache
+php artisan route:clear
+```
+
+<Warning>
+Route caching doesn't work with closure-based routes. Always use controller methods in production applications.
+</Warning>
+
+## Viewing Routes
+
+List all registered routes:
+
+```bash
+php artisan route:list
+```
+
+Filter routes by name or URI:
+
+```bash
+php artisan route:list --name=user
+php artisan route:list --path=api
+```

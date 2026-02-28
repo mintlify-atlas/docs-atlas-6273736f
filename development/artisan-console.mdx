@@ -1,0 +1,408 @@
+---
+title: Artisan Console
+description: Learn how to use Laravel's Artisan CLI and create custom console commands
+---
+
+## Overview
+
+Artisan is Laravel's command-line interface that provides helpful commands for building your application. The Artisan console is powered by the Symfony Console component.
+
+## Artisan Architecture
+
+The Artisan CLI is bootstrapped through the `artisan` file in your project root:
+
+```php artisan
+#!/usr/bin/env php
+<?php
+
+use Illuminate\Foundation\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+// Register the Composer autoloader...
+require __DIR__.'/vendor/autoload.php';
+
+// Bootstrap Laravel and handle the command...
+/** @var Application $app */
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+$status = $app->handleCommand(new ArgvInput);
+
+exit($status);
+```
+
+<Info>
+The Artisan file bootstraps the Laravel application and handles command execution through Symfony's Console component.
+</Info>
+
+## Running Artisan Commands
+
+<Steps>
+
+<Step title="View all available commands">
+List all available Artisan commands:
+
+```bash
+php artisan list
+```
+</Step>
+
+<Step title="Get help for a command">
+View help information for any command:
+
+```bash
+php artisan help migrate
+```
+</Step>
+
+<Step title="Run a command">
+Execute an Artisan command:
+
+```bash
+php artisan migrate
+```
+</Step>
+
+</Steps>
+
+## Common Artisan Commands
+
+### Development Commands
+
+<CodeGroup>
+
+```bash Server
+# Start the development server
+php artisan serve
+```
+
+```bash Queue Worker
+# Start the queue worker
+php artisan queue:listen --tries=1 --timeout=0
+```
+
+```bash Logs
+# Tail application logs
+php artisan pail --timeout=0
+```
+
+```bash Cache
+# Clear application cache
+php artisan cache:clear
+```
+
+</CodeGroup>
+
+### Database Commands
+
+<CodeGroup>
+
+```bash Migrate
+# Run database migrations
+php artisan migrate
+
+# Run migrations in production
+php artisan migrate --force
+```
+
+```bash Rollback
+# Rollback the last migration
+php artisan migrate:rollback
+
+# Rollback all migrations
+php artisan migrate:reset
+```
+
+```bash Seed
+# Seed the database
+php artisan db:seed
+```
+
+```bash Fresh
+# Drop all tables and re-run migrations
+php artisan migrate:fresh
+
+# Fresh migrate and seed
+php artisan migrate:fresh --seed
+```
+
+</CodeGroup>
+
+### Application Commands
+
+<CodeGroup>
+
+```bash Key Generate
+# Generate application key
+php artisan key:generate
+```
+
+```bash Config Cache
+# Cache configuration files
+php artisan config:cache
+
+# Clear configuration cache
+php artisan config:clear
+```
+
+```bash Route Cache
+# Cache routes for faster registration
+php artisan route:cache
+
+# Clear route cache
+php artisan route:clear
+```
+
+```bash View Cache
+# Compile Blade templates
+php artisan view:cache
+
+# Clear compiled views
+php artisan view:clear
+```
+
+</CodeGroup>
+
+## Creating Custom Commands
+
+Laravel provides two ways to create custom console commands: closure-based commands and class-based commands.
+
+### Closure-Based Commands
+
+Define simple commands in `routes/console.php`:
+
+```php routes/console.php
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+```
+
+<Tip>
+Use closure-based commands for simple, one-off tasks that don't require complex logic.
+</Tip>
+
+Run the command:
+
+```bash
+php artisan inspire
+```
+
+### Class-Based Commands
+
+For more complex commands, generate a command class:
+
+```bash
+php artisan make:command SendEmails
+```
+
+This creates a command class in `app/Console/Commands/`:
+
+```php app/Console/Commands/SendEmails.php
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+
+class SendEmails extends Command
+{
+    /**
+     * The name and signature of the console command.
+     */
+    protected $signature = 'mail:send {user} {--queue}';
+
+    /**
+     * The console command description.
+     */
+    protected $description = 'Send emails to a user';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle(): void
+    {
+        $userId = $this->argument('user');
+        $queue = $this->option('queue');
+
+        $this->info("Sending emails to user {$userId}");
+        
+        if ($queue) {
+            $this->line('Emails queued successfully!');
+        }
+    }
+}
+```
+
+### Command Input
+
+<CodeGroup>
+
+```php Arguments
+// Define arguments
+protected $signature = 'mail:send {user}';
+
+// Required argument
+protected $signature = 'mail:send {user}';
+
+// Optional argument
+protected $signature = 'mail:send {user?}';
+
+// Argument with default
+protected $signature = 'mail:send {user=all}';
+
+// Get argument value
+$userId = $this->argument('user');
+```
+
+```php Options
+// Define options
+protected $signature = 'mail:send {user} {--queue}';
+
+// Option with value
+protected $signature = 'mail:send {user} {--queue=}';
+
+// Option with default value
+protected $signature = 'mail:send {user} {--queue=default}';
+
+// Option shortcut
+protected $signature = 'mail:send {user} {--Q|queue}';
+
+// Get option value
+$queue = $this->option('queue');
+```
+
+</CodeGroup>
+
+### Command Output
+
+<CodeGroup>
+
+```php Info Messages
+$this->info('Operation completed successfully');
+```
+
+```php Error Messages
+$this->error('Something went wrong!');
+```
+
+```php Warning Messages
+$this->warn('This action cannot be undone');
+```
+
+```php Comments
+$this->comment('Processing records...');
+```
+
+```php Plain Text
+$this->line('Regular output text');
+```
+
+</CodeGroup>
+
+### Interactive Prompts
+
+```php
+// Ask for input
+$name = $this->ask('What is your name?');
+
+// Ask with default value
+$name = $this->ask('What is your name?', 'John Doe');
+
+// Secret input (password)
+$password = $this->secret('What is the password?');
+
+// Confirmation
+if ($this->confirm('Do you wish to continue?')) {
+    // User confirmed
+}
+
+// Choice selection
+$role = $this->choice(
+    'What is your role?',
+    ['Admin', 'User', 'Guest'],
+    0
+);
+```
+
+### Progress Bars
+
+```php
+$users = User::all();
+
+$bar = $this->output->createProgressBar(count($users));
+
+$bar->start();
+
+foreach ($users as $user) {
+    // Process user
+    $bar->advance();
+}
+
+$bar->finish();
+```
+
+## Tinker
+
+Tinker is a powerful REPL (Read-Eval-Print Loop) for Laravel, allowing you to interact with your application from the command line:
+
+```bash
+php artisan tinker
+```
+
+<Warning>
+Be careful when using Tinker in production as it provides full access to your application.
+</Warning>
+
+Example Tinker session:
+
+```php
+>>> $user = App\Models\User::first();
+>>> $user->name;
+=> "John Doe"
+
+>>> User::count();
+=> 42
+
+>>> DB::table('users')->where('active', true)->count();
+=> 38
+```
+
+## Scheduling Commands
+
+Schedule Artisan commands in `bootstrap/app.php` or using the `schedule:` method:
+
+```php
+use Illuminate\Console\Scheduling\Schedule;
+
+->withSchedule(function (Schedule $schedule) {
+    // Run command every hour
+    $schedule->command('emails:send')->hourly();
+    
+    // Run command daily at specific time
+    $schedule->command('reports:generate')->dailyAt('13:00');
+    
+    // Run custom closure
+    $schedule->call(function () {
+        // Task logic
+    })->everyMinute();
+})
+```
+
+Run the scheduler:
+
+```bash
+php artisan schedule:run
+```
+
+<Note>
+In production, add a single cron entry to run the Laravel scheduler:
+```bash
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+</Note>

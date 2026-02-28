@@ -1,0 +1,681 @@
+---
+title: Performance Optimization
+description: Optimize your Laravel application for maximum performance
+---
+
+## Overview
+
+Optimizing your Laravel application involves caching, database tuning, asset optimization, and proper server configuration. This guide covers essential optimization techniques.
+
+## Configuration Optimization
+
+### Cache Configuration Files
+
+Combine all configuration files into a single cached file:
+
+```bash
+php artisan config:cache
+```
+
+This significantly reduces the number of file reads on each request.
+
+<Warning>
+After caching, the `env()` helper will **only** work within configuration files. Always use `config()` in your application code.
+</Warning>
+
+### Clear Configuration Cache
+
+When updating configuration, clear the cache:
+
+```bash
+php artisan config:clear
+```
+
+<Info>
+In development, avoid using config caching as it requires clearing after every change.
+</Info>
+
+## Route Optimization
+
+### Cache Routes
+
+Cache your route registrations:
+
+```bash
+php artisan route:cache
+```
+
+This can dramatically speed up route registration on large applications.
+
+<Note>
+Route caching doesn't support closure-based routes. Convert all closure routes to controller methods:
+
+```php
+// Don't cache - Closure route
+Route::get('/users', function () {
+    return User::all();
+});
+
+// Can cache - Controller route
+Route::get('/users', [UserController::class, 'index']);
+```
+</Note>
+
+### Clear Route Cache
+
+```bash
+php artisan route:clear
+```
+
+## View Optimization
+
+### Compile Blade Templates
+
+Precompile all Blade templates:
+
+```bash
+php artisan view:cache
+```
+
+This compiles all Blade views into PHP code, eliminating compilation on each request.
+
+### Clear View Cache
+
+```bash
+php artisan view:clear
+```
+
+## Autoloader Optimization
+
+Optimize Composer's class autoloader:
+
+```bash
+composer install --optimize-autoloader --no-dev
+```
+
+Or for an existing installation:
+
+```bash
+composer dump-autoload --optimize
+```
+
+<Info>
+The `--optimize` flag generates a class map for faster class loading.
+</Info>
+
+## Asset Optimization
+
+### Vite Build Configuration
+
+Your application uses Vite for asset compilation:
+
+```js vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/css/app.css', 'resources/js/app.js'],
+            refresh: true,
+        }),
+        tailwindcss(),
+    ],
+    server: {
+        watch: {
+            ignored: ['**/storage/framework/views/**'],
+        },
+    },
+});
+```
+
+### Build for Production
+
+Compile and optimize assets:
+
+```bash
+npm run build
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  }
+}
+```
+
+```bash Build Command
+npm run build
+```
+
+</CodeGroup>
+
+Vite automatically:
+- Minifies JavaScript and CSS
+- Tree-shakes unused code
+- Generates versioned filenames for cache busting
+- Optimizes images and assets
+- Creates source maps for debugging
+
+### Asset Serving
+
+For production, serve assets through a CDN or configure proper caching headers:
+
+```nginx
+location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+```
+
+## Database Optimization
+
+### Eager Loading
+
+Avoid N+1 query problems by eager loading relationships:
+
+<CodeGroup>
+
+```php Bad - N+1 Problem
+// Executes 1 query + N queries (one per user)
+$posts = Post::all();
+foreach ($posts as $post) {
+    echo $post->user->name;
+}
+```
+
+```php Good - Eager Loading
+// Executes only 2 queries
+$posts = Post::with('user')->get();
+foreach ($posts as $post) {
+    echo $post->user->name;
+}
+```
+
+</CodeGroup>
+
+### Query Optimization
+
+<CodeGroup>
+
+```php Select Specific Columns
+// Bad - Loads all columns
+$users = User::all();
+
+// Good - Only loads needed columns
+$users = User::select('id', 'name', 'email')->get();
+```
+
+```php Chunking Large Results
+// Process large datasets in chunks
+User::chunk(100, function ($users) {
+    foreach ($users as $user) {
+        // Process user
+    }
+});
+```
+
+```php Query Caching
+// Cache expensive queries
+$users = Cache::remember('users.active', 3600, function () {
+    return User::where('active', true)->get();
+});
+```
+
+</CodeGroup>
+
+### Database Indexing
+
+Add indexes to frequently queried columns:
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->index('email');
+    $table->index(['last_name', 'first_name']);
+});
+```
+
+### Connection Pooling
+
+Use persistent database connections in production:
+
+```php config/database.php
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'forge'),
+    'username' => env('DB_USERNAME', 'forge'),
+    'password' => env('DB_PASSWORD', ''),
+    'options' => [
+        PDO::ATTR_PERSISTENT => true,
+    ],
+],
+```
+
+## Caching Strategies
+
+### Application Cache
+
+<CodeGroup>
+
+```php Store Cache
+Cache::put('key', 'value', $seconds);
+
+// Forever (until manually cleared)
+Cache::forever('key', 'value');
+
+// Remember (retrieve or store)
+$value = Cache::remember('users', 3600, function () {
+    return DB::table('users')->get();
+});
+```
+
+```php Retrieve Cache
+$value = Cache::get('key');
+
+// With default value
+$value = Cache::get('key', 'default');
+
+// Check existence
+if (Cache::has('key')) {
+    $value = Cache::get('key');
+}
+```
+
+```php Remove Cache
+Cache::forget('key');
+
+// Clear all cache
+Cache::flush();
+```
+
+</CodeGroup>
+
+### Cache Drivers
+
+Configure Redis for high-performance caching:
+
+```php config/cache.php
+'default' => env('CACHE_DRIVER', 'redis'),
+
+'stores' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'cache',
+        'lock_connection' => 'default',
+    ],
+],
+```
+
+```bash .env
+CACHE_DRIVER=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+### Response Caching
+
+Cache entire HTTP responses:
+
+```php
+Route::get('/posts', function () {
+    return Cache::remember('posts.all', 3600, function () {
+        return Post::with('author')->latest()->get();
+    });
+});
+```
+
+Or use response caching middleware:
+
+```php
+Route::middleware('cache.response:3600')->group(function () {
+    Route::get('/api/posts', [PostController::class, 'index']);
+});
+```
+
+## Queue Optimization
+
+### Use Queues for Slow Tasks
+
+Offload time-consuming tasks to queues:
+
+<CodeGroup>
+
+```php Dispatch Job
+use App\Jobs\ProcessPodcast;
+
+// Dispatch to queue
+ProcessPodcast::dispatch($podcast);
+
+// Dispatch with delay
+ProcessPodcast::dispatch($podcast)
+    ->delay(now()->addMinutes(10));
+
+// Dispatch to specific queue
+ProcessPodcast::dispatch($podcast)
+    ->onQueue('processing');
+```
+
+```php Job Class
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class ProcessPodcast implements ShouldQueue
+{
+    use Queueable, InteractsWithQueue, SerializesModels;
+
+    public function __construct(
+        public Podcast $podcast
+    ) {}
+
+    public function handle(): void
+    {
+        // Process podcast
+    }
+}
+```
+
+</CodeGroup>
+
+### Queue Workers
+
+Run optimized queue workers:
+
+```bash
+# Development (from composer.json)
+php artisan queue:listen --tries=1 --timeout=0
+
+# Production
+php artisan queue:work --tries=3 --timeout=90 --max-jobs=1000
+```
+
+<Info>
+The `composer dev` script includes queue workers:
+```json
+"dev": [
+    "Composer\\Config::disableProcessTimeout",
+    "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+]
+```
+</Info>
+
+### Redis Queue Driver
+
+Use Redis for high-performance queues:
+
+```php config/queue.php
+'default' => env('QUEUE_CONNECTION', 'redis'),
+
+'connections' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'default',
+        'queue' => env('REDIS_QUEUE', 'default'),
+        'retry_after' => 90,
+        'block_for' => null,
+    ],
+],
+```
+
+## Session Optimization
+
+Use Redis or Memcached for session storage:
+
+```bash .env
+SESSION_DRIVER=redis
+```
+
+```php config/session.php
+'driver' => env('SESSION_DRIVER', 'redis'),
+```
+
+## PHP Optimization
+
+### OPcache Configuration
+
+Enable and configure OPcache for PHP:
+
+```ini php.ini
+opcache.enable=1
+opcache.memory_consumption=256
+opcache.interned_strings_buffer=16
+opcache.max_accelerated_files=20000
+opcache.validate_timestamps=0  ; Disable in production
+opcache.save_comments=1
+opcache.fast_shutdown=1
+```
+
+<Warning>
+Set `opcache.validate_timestamps=0` in production and restart PHP after code changes.
+</Warning>
+
+### PHP-FPM Configuration
+
+```ini php-fpm.conf
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 10
+pm.min_spare_servers = 5
+pm.max_spare_servers = 20
+pm.max_requests = 500
+```
+
+## Complete Optimization Script
+
+Combine all optimizations:
+
+```bash optimize.sh
+#!/bin/bash
+
+echo "Starting optimization..."
+
+# Clear old caches
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan cache:clear
+
+# Optimize Composer autoloader
+composer dump-autoload --optimize
+
+# Cache everything
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+
+# Build assets
+npm run build
+
+# Restart services
+php artisan queue:restart
+sudo systemctl reload php8.2-fpm
+
+echo "Optimization complete!"
+```
+
+Make it executable:
+
+```bash
+chmod +x optimize.sh
+./optimize.sh
+```
+
+## Development vs Production
+
+<CodeGroup>
+
+```bash Development
+# Use the dev script for hot module replacement
+composer dev
+
+# This runs:
+# - php artisan serve
+# - php artisan queue:listen
+# - php artisan pail (logs)
+# - npm run dev (Vite HMR)
+```
+
+```bash Production
+# Run optimization commands
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+npm run build
+
+# Use queue workers with Supervisor
+sudo supervisorctl start laravel-worker:*
+```
+
+</CodeGroup>
+
+## Testing Environment
+
+The test environment is optimized for speed:
+
+```xml phpunit.xml
+<php>
+    <env name="DB_CONNECTION" value="sqlite"/>
+    <env name="DB_DATABASE" value=":memory:"/>
+    <env name="CACHE_STORE" value="array"/>
+    <env name="QUEUE_CONNECTION" value="sync"/>
+    <env name="SESSION_DRIVER" value="array"/>
+    <env name="BCRYPT_ROUNDS" value="4"/>
+</php>
+```
+
+<Info>
+The testing environment uses:
+- In-memory SQLite database for fast tests
+- Array cache driver (no external dependencies)
+- Synchronous queue (runs immediately)
+- Reduced bcrypt rounds for faster hashing
+</Info>
+
+Run tests efficiently:
+
+```bash
+# Use the test script
+composer test
+
+# Runs:
+# - php artisan config:clear
+# - php artisan test
+```
+
+## Monitoring Performance
+
+### Laravel Telescope
+
+Install Telescope for development monitoring:
+
+```bash
+composer require laravel/telescope --dev
+php artisan telescope:install
+php artisan migrate
+```
+
+<Note>
+Telescope is disabled in tests via `phpunit.xml`:
+```xml
+<env name="TELESCOPE_ENABLED" value="false"/>
+```
+</Note>
+
+### Laravel Debugbar
+
+Add Debugbar for request profiling:
+
+```bash
+composer require barryvdh/laravel-debugbar --dev
+```
+
+### Query Logging
+
+Log slow queries:
+
+```php config/database.php
+'connections' => [
+    'mysql' => [
+        // ...
+        'options' => [
+            PDO::ATTR_EMULATE_PREPARES => true,
+        ],
+        'slow_query_log' => env('DB_SLOW_QUERY_LOG', false),
+        'slow_query_time' => 2000, // milliseconds
+    ],
+],
+```
+
+## Benchmarking
+
+### Apache Bench
+
+Test application performance:
+
+```bash
+# 1000 requests, 10 concurrent
+ab -n 1000 -c 10 https://yourdomain.com/
+```
+
+### Laravel Artisan Benchmark
+
+Benchmark specific routes:
+
+```bash
+php artisan route:list --compact
+php artisan optimize
+```
+
+## Best Practices
+
+<Steps>
+
+<Step title="Use caching strategically">
+- Cache configuration, routes, and views in production
+- Use Redis for cache and sessions
+- Implement query result caching for expensive queries
+</Step>
+
+<Step title="Optimize database queries">
+- Use eager loading to avoid N+1 problems
+- Add indexes to frequently queried columns
+- Select only needed columns
+- Use chunking for large datasets
+</Step>
+
+<Step title="Leverage queues">
+- Move slow tasks to background jobs
+- Use Redis queue driver for performance
+- Configure proper queue workers with Supervisor
+</Step>
+
+<Step title="Optimize assets">
+- Build assets for production with Vite
+- Serve assets through a CDN
+- Enable browser caching with proper headers
+</Step>
+
+<Step title="Monitor and measure">
+- Use Laravel Telescope in development
+- Monitor slow queries and optimize them
+- Profile code with Debugbar
+- Benchmark critical endpoints
+</Step>
+
+</Steps>
+
+<Tip>
+Always measure before and after optimization to ensure your changes have the desired effect.
+</Tip>

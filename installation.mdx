@@ -1,0 +1,295 @@
+---
+title: Installation
+description: Get Laravel installed and running on your system with our comprehensive installation guide.
+---
+
+This guide will walk you through installing Laravel and setting up your development environment.
+
+## System requirements
+
+Before installing Laravel, ensure your system meets the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="PHP" icon="php">
+    **PHP 8.2 or higher** is required
+  </Card>
+  <Card title="Composer" icon="box">
+    Composer for dependency management
+  </Card>
+  <Card title="Database" icon="database">
+    SQLite, MySQL, PostgreSQL, or SQL Server
+  </Card>
+  <Card title="Node.js" icon="node-js">
+    Node.js and NPM for asset compilation
+  </Card>
+</CardGroup>
+
+<Info>
+Laravel 12.0 requires PHP 8.2 or higher. Check your PHP version with `php -v`.
+</Info>
+
+## Installation methods
+
+### Via Composer Create-Project
+
+The recommended way to install Laravel is using Composer's `create-project` command:
+
+<Steps>
+  <Step title="Create a new Laravel project">
+    Run the following command to create a new Laravel application:
+
+    ```bash
+    composer create-project laravel/laravel example-app
+    ```
+
+    This will create a new directory called `example-app` with a fresh Laravel installation.
+  </Step>
+
+  <Step title="Navigate to your project">
+    ```bash
+    cd example-app
+    ```
+  </Step>
+
+  <Step title="Start the development server">
+    ```bash
+    php artisan serve
+    ```
+
+    Your application will be available at `http://localhost:8000`.
+  </Step>
+</Steps>
+
+### Via Laravel Installer
+
+Alternatively, you can install the Laravel installer globally:
+
+```bash
+composer global require laravel/installer
+laravel new example-app
+```
+
+## Initial configuration
+
+After installing Laravel, you'll need to configure your application.
+
+### Environment configuration
+
+Laravel uses environment variables for configuration. Copy the example file to create your `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+<Note>
+If you used `composer create-project`, this file is created automatically.
+</Note>
+
+### Application key
+
+Generate a unique application key:
+
+```bash
+php artisan key:generate
+```
+
+<Warning>
+The application key is used for encryption. Without it, user sessions and other encrypted data will not be secure.
+</Warning>
+
+### Environment variables
+
+Your `.env` file contains important configuration settings:
+
+<CodeGroup>
+```bash Application Settings
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+```
+
+```bash Database Configuration
+DB_CONNECTION=sqlite
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=laravel
+# DB_USERNAME=root
+# DB_PASSWORD=
+```
+
+```bash Session and Cache
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+```
+
+```bash Mail Configuration
+MAIL_MAILER=log
+MAIL_HOST=127.0.0.1
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+</CodeGroup>
+
+## Database setup
+
+Laravel supports multiple database systems. By default, it uses SQLite.
+
+### SQLite (default)
+
+Create the database file:
+
+```bash
+touch database/database.sqlite
+```
+
+### MySQL or PostgreSQL
+
+Update your `.env` file with your database credentials:
+
+```bash .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Run migrations
+
+Create the necessary database tables:
+
+```bash
+php artisan migrate
+```
+
+## Asset compilation
+
+Laravel uses Vite for asset compilation. Install Node dependencies and build assets:
+
+<Steps>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+
+  <Step title="Build assets for development">
+    ```bash
+    npm run dev
+    ```
+  </Step>
+
+  <Step title="Or build for production">
+    ```bash
+    npm run build
+    ```
+  </Step>
+</Steps>
+
+## Automated setup script
+
+Laravel includes a convenient setup script in `composer.json` that automates the installation process:
+
+```bash
+composer run setup
+```
+
+This script performs the following tasks:
+
+<Steps>
+  <Step title="Install Composer dependencies">
+    Runs `composer install` to install all PHP packages
+  </Step>
+
+  <Step title="Create environment file">
+    Copies `.env.example` to `.env` if it doesn't exist
+  </Step>
+
+  <Step title="Generate application key">
+    Runs `php artisan key:generate`
+  </Step>
+
+  <Step title="Run database migrations">
+    Creates all required database tables
+  </Step>
+
+  <Step title="Install and build frontend assets">
+    Runs `npm install` and `npm run build`
+  </Step>
+</Steps>
+
+## Development server
+
+Start the built-in development server:
+
+```bash
+php artisan serve
+```
+
+Your application will be accessible at `http://localhost:8000`.
+
+<Tip>
+Use the `--port` flag to specify a different port: `php artisan serve --port=8080`
+</Tip>
+
+### Full development environment
+
+For a complete development environment with queue workers, log tailing, and asset watching:
+
+```bash
+composer run dev
+```
+
+This runs multiple processes concurrently:
+- Development server (`php artisan serve`)
+- Queue worker (`php artisan queue:listen`)
+- Log viewer (`php artisan pail`)
+- Asset watcher (`npm run dev`)
+
+## Directory permissions
+
+Laravel needs write permissions for the `storage` and `bootstrap/cache` directories:
+
+```bash
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+```
+
+## Verification
+
+Verify your installation by visiting `http://localhost:8000` in your browser. You should see the Laravel welcome page.
+
+<Note>
+If you encounter any issues, check the `storage/logs/laravel.log` file for error messages.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Build your first Laravel application
+  </Card>
+  <Card title="Configuration" icon="gear" href="https://laravel.com/docs/configuration">
+    Learn about Laravel's configuration options
+  </Card>
+  <Card title="Directory structure" icon="folder-tree" href="https://laravel.com/docs/structure">
+    Understand Laravel's directory structure
+  </Card>
+  <Card title="Deployment" icon="cloud" href="https://laravel.com/docs/deployment">
+    Deploy your Laravel application to production
+  </Card>
+</CardGroup>

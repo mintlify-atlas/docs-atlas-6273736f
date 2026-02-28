@@ -1,0 +1,338 @@
+---
+title: Database configuration
+description: Configure database connections for MySQL, PostgreSQL, SQLite, and more
+---
+
+## Overview
+
+Laravel makes interacting with databases simple across various database backends using raw SQL, a fluent query builder, and the Eloquent ORM. Configuration is defined in `config/database.php`.
+
+## Default Connection
+
+The default database connection is set via the `DB_CONNECTION` environment variable:
+
+```bash .env
+DB_CONNECTION=sqlite
+```
+
+```php config/database.php
+'default' => env('DB_CONNECTION', 'sqlite'),
+```
+
+## SQLite Configuration
+
+SQLite is the default database for new Laravel applications. It requires no additional server setup.
+
+### Environment Variables
+
+```bash .env
+DB_CONNECTION=sqlite
+```
+
+### Configuration
+
+```php config/database.php
+'sqlite' => [
+    'driver' => 'sqlite',
+    'url' => env('DB_URL'),
+    'database' => env('DB_DATABASE', database_path('database.sqlite')),
+    'prefix' => '',
+    'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+    'busy_timeout' => null,
+    'journal_mode' => null,
+    'synchronous' => null,
+    'transaction_mode' => 'DEFERRED',
+],
+```
+
+<Info>The database file is located at `database/database.sqlite` by default.</Info>
+
+### Creating the Database
+
+```bash
+touch database/database.sqlite
+```
+
+## MySQL Configuration
+
+MySQL is a popular choice for production applications.
+
+### Environment Variables
+
+```bash .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Configuration
+
+```php config/database.php
+'mysql' => [
+    'driver' => 'mysql',
+    'url' => env('DB_URL'),
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    'username' => env('DB_USERNAME', 'root'),
+    'password' => env('DB_PASSWORD', ''),
+    'unix_socket' => env('DB_SOCKET', ''),
+    'charset' => env('DB_CHARSET', 'utf8mb4'),
+    'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+    'prefix' => '',
+    'prefix_indexes' => true,
+    'strict' => true,
+    'engine' => null,
+    'options' => extension_loaded('pdo_mysql') ? array_filter([
+        (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+    ]) : [],
+],
+```
+
+<AccordionGroup>
+  <Accordion title="Character Set and Collation">
+    Laravel uses `utf8mb4` by default, which supports full Unicode including emojis.
+    
+    - **charset:** `utf8mb4`
+    - **collation:** `utf8mb4_unicode_ci`
+  </Accordion>
+
+  <Accordion title="Strict Mode">
+    Strict mode enforces stricter data validation. Recommended for all environments.
+    
+    ```php
+    'strict' => true,
+    ```
+  </Accordion>
+
+  <Accordion title="Unix Socket Connection">
+    For better performance on the same server:
+    
+    ```bash .env
+    DB_SOCKET=/var/run/mysqld/mysqld.sock
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## MariaDB Configuration
+
+MariaDB is a MySQL-compatible database with its own driver.
+
+```bash .env
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+```php config/database.php
+'mariadb' => [
+    'driver' => 'mariadb',
+    'url' => env('DB_URL'),
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    'username' => env('DB_USERNAME', 'root'),
+    'password' => env('DB_PASSWORD', ''),
+    'unix_socket' => env('DB_SOCKET', ''),
+    'charset' => env('DB_CHARSET', 'utf8mb4'),
+    'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+    'prefix' => '',
+    'prefix_indexes' => true,
+    'strict' => true,
+    'engine' => null,
+    'options' => extension_loaded('pdo_mysql') ? array_filter([
+        (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+    ]) : [],
+],
+```
+
+## PostgreSQL Configuration
+
+PostgreSQL is a powerful, open-source relational database.
+
+### Environment Variables
+
+```bash .env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Configuration
+
+```php config/database.php
+'pgsql' => [
+    'driver' => 'pgsql',
+    'url' => env('DB_URL'),
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '5432'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    'username' => env('DB_USERNAME', 'root'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset' => env('DB_CHARSET', 'utf8'),
+    'prefix' => '',
+    'prefix_indexes' => true,
+    'search_path' => 'public',
+    'sslmode' => env('DB_SSLMODE', 'prefer'),
+],
+```
+
+<Info>PostgreSQL uses `search_path` to specify which schema to use. The default is `public`.</Info>
+
+## SQL Server Configuration
+
+For Microsoft SQL Server:
+
+```bash .env
+DB_CONNECTION=sqlsrv
+DB_HOST=localhost
+DB_PORT=1433
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+```php config/database.php
+'sqlsrv' => [
+    'driver' => 'sqlsrv',
+    'url' => env('DB_URL'),
+    'host' => env('DB_HOST', 'localhost'),
+    'port' => env('DB_PORT', '1433'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    'username' => env('DB_USERNAME', 'root'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset' => env('DB_CHARSET', 'utf8'),
+    'prefix' => '',
+    'prefix_indexes' => true,
+],
+```
+
+## Redis Configuration
+
+Redis can be used for caching, sessions, and queues.
+
+### Environment Variables
+
+```bash .env
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+### Configuration
+
+```php config/database.php
+'redis' => [
+    'client' => env('REDIS_CLIENT', 'phpredis'),
+    
+    'options' => [
+        'cluster' => env('REDIS_CLUSTER', 'redis'),
+        'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+        'persistent' => env('REDIS_PERSISTENT', false),
+    ],
+    
+    'default' => [
+        'url' => env('REDIS_URL'),
+        'host' => env('REDIS_HOST', '127.0.0.1'),
+        'username' => env('REDIS_USERNAME'),
+        'password' => env('REDIS_PASSWORD'),
+        'port' => env('REDIS_PORT', '6379'),
+        'database' => env('REDIS_DB', '0'),
+        'max_retries' => env('REDIS_MAX_RETRIES', 3),
+        'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+        'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+        'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+    ],
+    
+    'cache' => [
+        'url' => env('REDIS_URL'),
+        'host' => env('REDIS_HOST', '127.0.0.1'),
+        'username' => env('REDIS_USERNAME'),
+        'password' => env('REDIS_PASSWORD'),
+        'port' => env('REDIS_PORT', '6379'),
+        'database' => env('REDIS_CACHE_DB', '1'),
+        'max_retries' => env('REDIS_MAX_RETRIES', 3),
+        'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+        'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+        'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+    ],
+],
+```
+
+<Note>Laravel supports two Redis clients: `phpredis` (PHP extension) and `predis` (pure PHP). The `phpredis` extension offers better performance.</Note>
+
+## Migration Settings
+
+```php config/database.php
+'migrations' => [
+    'table' => 'migrations',
+    'update_date_on_publish' => true,
+],
+```
+
+The `migrations` table tracks which migrations have been run.
+
+## Using Multiple Connections
+
+You can use multiple database connections simultaneously:
+
+```php
+use Illuminate\Support\Facades\DB;
+
+// Use default connection
+$users = DB::table('users')->get();
+
+// Use specific connection
+$users = DB::connection('mysql')->table('users')->get();
+```
+
+## Connection URL
+
+Instead of individual connection parameters, you can use a connection URL:
+
+```bash .env
+DB_URL=mysql://user:password@localhost:3306/database
+```
+
+This is useful for platforms like Heroku that provide a single `DATABASE_URL` variable.
+
+## Best Practices
+
+<Steps>
+  <Step title="Use environment variables">
+    Never hardcode database credentials. Always use `.env` variables.
+  </Step>
+
+  <Step title="Enable strict mode">
+    Use strict mode in MySQL/MariaDB to catch data integrity issues early.
+  </Step>
+
+  <Step title="Use UTF8MB4">
+    Always use `utf8mb4` character set for full Unicode support including emojis.
+  </Step>
+
+  <Step title="Secure production connections">
+    Use SSL/TLS connections and strong passwords in production environments.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Migrations" icon="code-branch" href="/concepts/database-migrations">
+    Learn about database migrations
+  </Card>
+  <Card title="Eloquent ORM" icon="database" href="/concepts/eloquent-orm">
+    Work with the Eloquent ORM
+  </Card>
+</CardGroup>

@@ -1,0 +1,412 @@
+---
+title: Queue configuration
+description: Configure background job processing with database, Redis, SQS, and Beanstalkd
+---
+
+## Overview
+
+Queues allow you to defer time-consuming tasks like sending emails or processing uploads to background workers, improving response times. Configuration is in `config/queue.php`.
+
+## Default Queue Connection
+
+```bash .env
+QUEUE_CONNECTION=database
+```
+
+```php config/queue.php
+'default' => env('QUEUE_CONNECTION', 'database'),
+```
+
+## Available Queue Drivers
+
+Laravel supports these queue drivers:
+
+- `sync` - Execute jobs immediately (no queuing)
+- `database` - Database table storage
+- `beanstalkd` - Beanstalkd server
+- `sqs` - Amazon SQS
+- `redis` - Redis server
+- `deferred` - Defer jobs until after response
+- `background` - Run in background process
+- `failover` - Fallback between multiple queues
+- `null` - Discard all jobs (testing)
+
+## Sync Driver
+
+Executes jobs immediately in the same process. Useful for local development.
+
+```bash .env
+QUEUE_CONNECTION=sync
+```
+
+```php config/queue.php
+'sync' => [
+    'driver' => 'sync',
+],
+```
+
+<Warning>Jobs run synchronously, blocking the request. Only use for development.</Warning>
+
+## Database Driver
+
+Stores queued jobs in a database table. Good default for most applications.
+
+### Environment Variables
+
+```bash .env
+QUEUE_CONNECTION=database
+DB_QUEUE_TABLE=jobs
+DB_QUEUE=default
+DB_QUEUE_RETRY_AFTER=90
+```
+
+### Configuration
+
+```php config/queue.php
+'database' => [
+    'driver' => 'database',
+    'connection' => env('DB_QUEUE_CONNECTION'),
+    'table' => env('DB_QUEUE_TABLE', 'jobs'),
+    'queue' => env('DB_QUEUE', 'default'),
+    'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+    'after_commit' => false,
+],
+```
+
+### Setup
+
+Create the queue tables:
+
+```bash
+php artisan migrate
+```
+
+The jobs table migration is included by default at:
+`database/migrations/0001_01_01_000002_create_jobs_table.php`
+
+<Info>This migration creates three tables: `jobs`, `job_batches`, and `failed_jobs`.</Info>
+
+## Redis Driver
+
+Uses Redis for high-performance queue processing. Recommended for production.
+
+### Environment Variables
+
+```bash .env
+QUEUE_CONNECTION=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_QUEUE=default
+REDIS_QUEUE_RETRY_AFTER=90
+```
+
+### Configuration
+
+```php config/queue.php
+'redis' => [
+    'driver' => 'redis',
+    'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+    'queue' => env('REDIS_QUEUE', 'default'),
+    'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+    'block_for' => null,
+    'after_commit' => false,
+],
+```
+
+<Tip>Redis provides better performance than database queues, especially under heavy load.</Tip>
+
+## Beanstalkd Driver
+
+Uses Beanstalkd for distributed queue processing.
+
+### Environment Variables
+
+```bash .env
+QUEUE_CONNECTION=beanstalkd
+BEANSTALKD_QUEUE_HOST=localhost
+BEANSTALKD_QUEUE=default
+BEANSTALKD_QUEUE_RETRY_AFTER=90
+```
+
+### Configuration
+
+```php config/queue.php
+'beanstalkd' => [
+    'driver' => 'beanstalkd',
+    'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
+    'queue' => env('BEANSTALKD_QUEUE', 'default'),
+    'retry_after' => (int) env('BEANSTALKD_QUEUE_RETRY_AFTER', 90),
+    'block_for' => 0,
+    'after_commit' => false,
+],
+```
+
+## Amazon SQS Driver
+
+Uses Amazon Simple Queue Service for cloud-based queuing.
+
+### Environment Variables
+
+```bash .env
+QUEUE_CONNECTION=sqs
+AWS_ACCESS_KEY_ID=your-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_DEFAULT_REGION=us-east-1
+SQS_PREFIX=https://sqs.us-east-1.amazonaws.com/your-account-id
+SQS_QUEUE=default
+SQS_SUFFIX=
+```
+
+### Configuration
+
+```php config/queue.php
+'sqs' => [
+    'driver' => 'sqs',
+    'key' => env('AWS_ACCESS_KEY_ID'),
+    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+    'prefix' => env('SQS_PREFIX', 'https://sqs.us-east-1.amazonaws.com/your-account-id'),
+    'queue' => env('SQS_QUEUE', 'default'),
+    'suffix' => env('SQS_SUFFIX'),
+    'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    'after_commit' => false,
+],
+```
+
+## Deferred Driver
+
+Defers jobs until after the HTTP response is sent.
+
+```php config/queue.php
+'deferred' => [
+    'driver' => 'deferred',
+],
+```
+
+<Info>Jobs execute after the response but within the same process. Faster than true queues for simple tasks.</Info>
+
+## Background Driver
+
+Runs jobs in background processes.
+
+```php config/queue.php
+'background' => [
+    'driver' => 'background',
+],
+```
+
+## Failover Driver
+
+Falls back to secondary queues if primary fails.
+
+```php config/queue.php
+'failover' => [
+    'driver' => 'failover',
+    'connections' => [
+        'database',
+        'deferred',
+    ],
+],
+```
+
+<Tip>Use failover to ensure jobs are processed even when primary queue is unavailable.</Tip>
+
+## Job Batching
+
+Configuration for batching multiple jobs:
+
+```php config/queue.php
+'batching' => [
+    'database' => env('DB_CONNECTION', 'sqlite'),
+    'table' => 'job_batches',
+],
+```
+
+<Info>The `job_batches` table tracks the progress of job batches.</Info>
+
+## Failed Jobs
+
+Configuration for storing failed jobs:
+
+```php config/queue.php
+'failed' => [
+    'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
+    'database' => env('DB_CONNECTION', 'sqlite'),
+    'table' => 'failed_jobs',
+],
+```
+
+### Failed Job Drivers
+
+- `database-uuids` - Store in database with UUID
+- `dynamodb` - Store in Amazon DynamoDB
+- `file` - Store in log file
+- `null` - Discard failed jobs
+
+## Creating Jobs
+
+Generate a new job class:
+
+```bash
+php artisan make:job ProcessPodcast
+```
+
+```php app/Jobs/ProcessPodcast.php
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
+class ProcessPodcast implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function __construct(
+        public Podcast $podcast,
+    ) {}
+
+    public function handle(): void
+    {
+        // Process the podcast...
+    }
+}
+```
+
+## Dispatching Jobs
+
+```php
+use App\Jobs\ProcessPodcast;
+
+// Dispatch to default queue
+ProcessPodcast::dispatch($podcast);
+
+// Dispatch to specific queue
+ProcessPodcast::dispatch($podcast)->onQueue('podcasts');
+
+// Dispatch with delay
+ProcessPodcast::dispatch($podcast)->delay(now()->addMinutes(10));
+
+// Dispatch to specific connection
+ProcessPodcast::dispatch($podcast)->onConnection('redis');
+```
+
+## Running Queue Workers
+
+### Start Worker
+
+```bash
+php artisan queue:work
+
+# Specific connection
+php artisan queue:work redis
+
+# Specific queue
+php artisan queue:work --queue=high,default
+
+# With timeout
+php artisan queue:work --timeout=60
+
+# With memory limit
+php artisan queue:work --memory=128
+```
+
+### Worker Options
+
+```bash
+# Process only one job
+php artisan queue:work --once
+
+# Stop after processing all jobs
+php artisan queue:work --stop-when-empty
+
+# Max jobs before restart
+php artisan queue:work --max-jobs=1000
+
+# Max time before restart
+php artisan queue:work --max-time=3600
+```
+
+<Warning>Always use a process monitor like Supervisor to keep workers running in production.</Warning>
+
+## Monitoring Jobs
+
+```bash
+# List failed jobs
+php artisan queue:failed
+
+# Retry failed job
+php artisan queue:retry 5
+
+# Retry all failed jobs
+php artisan queue:retry all
+
+# Delete failed job
+php artisan queue:forget 5
+
+# Clear all failed jobs
+php artisan queue:flush
+
+# Monitor queue
+php artisan queue:monitor redis:default,redis:deployments --max=100
+```
+
+## Supervisor Configuration
+
+Example Supervisor configuration for production:
+
+```ini /etc/supervisor/conf.d/laravel-worker.conf
+[program:laravel-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /path/to/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=8
+redirect_stderr=true
+stdout_logfile=/path/to/worker.log
+stopwaitsecs=3600
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use Redis for production">
+    Redis queues offer the best performance and reliability.
+  </Step>
+
+  <Step title="Set appropriate timeouts">
+    Configure `retry_after` to be longer than your longest job.
+  </Step>
+
+  <Step title="Monitor failed jobs">
+    Set up alerts for failed jobs and review them regularly.
+  </Step>
+
+  <Step title="Use queue priorities">
+    Process critical jobs first by using multiple queues:
+    
+    ```bash
+    php artisan queue:work --queue=high,default,low
+    ```
+  </Step>
+
+  <Step title="Implement job batching">
+    Group related jobs together for better tracking and error handling.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Development Tools" icon="terminal" href="/development/artisan-console">
+    Learn about Artisan commands
+  </Card>
+  <Card title="Testing" icon="vial" href="/development/testing">
+    Test your queued jobs
+  </Card>
+</CardGroup>

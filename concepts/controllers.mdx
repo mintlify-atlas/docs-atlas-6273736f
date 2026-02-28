@@ -1,0 +1,365 @@
+---
+title: Controllers
+description: Organize request handling logic in Laravel using controllers to group related HTTP request handling into single classes
+---
+
+Controllers are classes that group related request handling logic into a single location. Instead of defining all request handling in route closures, you can organize this behavior using controller classes.
+
+## Basic Controllers
+
+Controllers are stored in the `app/Http/Controllers` directory.
+
+### Base Controller
+
+All controllers extend the base `Controller` class:
+
+```php app/Http/Controllers/Controller.php
+abstract class Controller
+{
+    //
+}
+```
+
+<Info>
+The base controller provides a convenient place to add shared middleware, validation logic, or helper methods.
+</Info>
+
+## Creating Controllers
+
+Generate a new controller using Artisan:
+
+```bash
+php artisan make:controller UserController
+```
+
+This creates a controller in `app/Http/Controllers/UserController.php`:
+
+```php
+namespace App\Http\Controllers;
+
+class UserController extends Controller
+{
+    public function index()
+    {
+        return view('users.index');
+    }
+}
+```
+
+## Single Action Controllers
+
+If a controller only handles a single action, you can use the `__invoke` method:
+
+```php
+namespace App\Http\Controllers;
+
+class ShowProfile extends Controller
+{
+    public function __invoke($id)
+    {
+        return view('profile.show', [
+            'user' => User::findOrFail($id)
+        ]);
+    }
+}
+```
+
+Route to a single action controller:
+
+```php
+Route::get('/profile/{id}', ShowProfile::class);
+```
+
+<Tip>
+Create a single action controller with `php artisan make:controller ShowProfile --invokable`.
+</Tip>
+
+## Controller Methods
+
+Controllers can have multiple methods to handle different actions:
+
+<CodeGroup>
+
+```php Index Method
+public function index()
+{
+    $users = User::all();
+    return view('users.index', compact('users'));
+}
+```
+
+```php Show Method
+public function show($id)
+{
+    $user = User::findOrFail($id);
+    return view('users.show', compact('user'));
+}
+```
+
+```php Create Method
+public function create()
+{
+    return view('users.create');
+}
+```
+
+```php Store Method
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|max:255',
+        'email' => 'required|email|unique:users',
+    ]);
+    
+    $user = User::create($validated);
+    
+    return redirect()->route('users.show', $user->id);
+}
+```
+
+</CodeGroup>
+
+## Resource Controllers
+
+Resource controllers handle CRUD operations for a resource:
+
+```bash
+php artisan make:controller PostController --resource
+```
+
+This generates a controller with all resource methods:
+
+```php
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+class PostController extends Controller
+{
+    public function index()
+    {
+        $posts = Post::all();
+        return view('posts.index', compact('posts'));
+    }
+
+    public function create()
+    {
+        return view('posts.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'content' => 'required',
+        ]);
+        
+        $post = Post::create($validated);
+        return redirect()->route('posts.show', $post);
+    }
+
+    public function show(Post $post)
+    {
+        return view('posts.show', compact('post'));
+    }
+
+    public function edit(Post $post)
+    {
+        return view('posts.edit', compact('post'));
+    }
+
+    public function update(Request $request, Post $post)
+    {
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'content' => 'required',
+        ]);
+        
+        $post->update($validated);
+        return redirect()->route('posts.show', $post);
+    }
+
+    public function destroy(Post $post)
+    {
+        $post->delete();
+        return redirect()->route('posts.index');
+    }
+}
+```
+
+### Registering Resource Routes
+
+```php
+Route::resource('posts', PostController::class);
+```
+
+### Partial Resource Routes
+
+Specify which actions to include:
+
+```php
+Route::resource('photos', PhotoController::class)->only([
+    'index', 'show'
+]);
+
+Route::resource('photos', PhotoController::class)->except([
+    'create', 'store', 'update', 'destroy'
+]);
+```
+
+## API Resource Controllers
+
+API controllers exclude the `create` and `edit` methods:
+
+```bash
+php artisan make:controller Api/UserController --api
+```
+
+```php
+Route::apiResource('users', Api\UserController::class);
+```
+
+## Dependency Injection
+
+Laravel automatically resolves controller dependencies:
+
+```php
+use App\Repositories\UserRepository;
+
+class UserController extends Controller
+{
+    public function __construct(
+        protected UserRepository $users
+    ) {}
+    
+    public function index()
+    {
+        $users = $this->users->all();
+        return view('users.index', compact('users'));
+    }
+}
+```
+
+<Note>
+Type-hint dependencies in the constructor or method parameters, and Laravel's service container will automatically inject them.
+</Note>
+
+## Controller Middleware
+
+Apply middleware to controller routes:
+
+### In Routes File
+
+```php
+Route::get('/profile', [UserController::class, 'show'])
+    ->middleware('auth');
+```
+
+### In Controller Constructor
+
+```php
+class UserController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('log')->only('index');
+        $this->middleware('subscribed')->except('store');
+    }
+}
+```
+
+### Closure Middleware
+
+```php
+public function __construct()
+{
+    $this->middleware(function ($request, $next) {
+        // Custom middleware logic
+        return $next($request);
+    });
+}
+```
+
+## Request Validation
+
+Validate incoming requests directly in controllers:
+
+```php
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|max:255',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|min:8|confirmed',
+    ]);
+    
+    User::create($validated);
+    
+    return redirect()->route('users.index');
+}
+```
+
+### Form Request Validation
+
+For complex validation, use Form Request classes:
+
+```php
+use App\Http\Requests\StoreUserRequest;
+
+public function store(StoreUserRequest $request)
+{
+    $validated = $request->validated();
+    User::create($validated);
+    
+    return redirect()->route('users.index');
+}
+```
+
+## Response Types
+
+Controllers can return various response types:
+
+<Tabs>
+  <Tab title="Views">
+    ```php
+    public function index()
+    {
+        return view('users.index');
+    }
+    ```
+  </Tab>
+  <Tab title="JSON">
+    ```php
+    public function index()
+    {
+        return response()->json([
+            'users' => User::all()
+        ]);
+    }
+    ```
+  </Tab>
+  <Tab title="Redirects">
+    ```php
+    public function store(Request $request)
+    {
+        // ...
+        return redirect()->route('users.index')
+            ->with('success', 'User created!');
+    }
+    ```
+  </Tab>
+  <Tab title="Downloads">
+    ```php
+    public function download()
+    {
+        return response()->download($pathToFile);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Always validate user input before processing to prevent security vulnerabilities.
+</Warning>

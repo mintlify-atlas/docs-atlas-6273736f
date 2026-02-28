@@ -1,0 +1,504 @@
+---
+title: Deployment
+description: Deploy your Laravel application to production
+---
+
+## Overview
+
+Deploying a Laravel application involves several steps to ensure your application runs securely and efficiently in production. This guide covers the essential deployment process.
+
+## Pre-Deployment Checklist
+
+<Steps>
+
+<Step title="Environment Configuration">
+Ensure your `.env` file is properly configured for production:
+
+```bash .env
+APP_NAME="Your Application"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_secure_password
+```
+
+<Warning>
+**Never** set `APP_DEBUG=true` in production. This exposes sensitive application information.
+</Warning>
+</Step>
+
+<Step title="Dependencies">
+Install production dependencies:
+
+```bash
+composer install --optimize-autoloader --no-dev
+```
+
+<Info>
+The `--no-dev` flag excludes development dependencies, reducing your application size.
+</Info>
+</Step>
+
+<Step title="Build Assets">
+Compile your frontend assets for production:
+
+```bash
+npm install
+npm run build
+```
+
+This uses Vite to bundle and optimize your assets:
+
+```js vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/css/app.css', 'resources/js/app.js'],
+            refresh: true,
+        }),
+        tailwindcss(),
+    ],
+});
+```
+</Step>
+
+</Steps>
+
+## Deployment Steps
+
+### Automated Setup
+
+Use the composer `setup` script for initial deployment:
+
+```json composer.json
+"scripts": {
+    "setup": [
+        "composer install",
+        "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+        "@php artisan key:generate",
+        "@php artisan migrate --force",
+        "npm install",
+        "npm run build"
+    ]
+}
+```
+
+Run the setup:
+
+```bash
+composer setup
+```
+
+<Note>
+The setup script handles environment configuration, key generation, database migration, and asset compilation in one command.
+</Note>
+
+### Manual Deployment
+
+<Steps>
+
+<Step title="Clone repository">
+```bash
+git clone https://github.com/your-repo/your-app.git
+cd your-app
+```
+</Step>
+
+<Step title="Install dependencies">
+```bash
+composer install --optimize-autoloader --no-dev
+npm install
+```
+</Step>
+
+<Step title="Configure environment">
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Edit `.env` with your production settings.
+</Step>
+
+<Step title="Set permissions">
+```bash
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+```
+</Step>
+
+<Step title="Run migrations">
+```bash
+php artisan migrate --force
+```
+
+<Warning>
+The `--force` flag is required to run migrations in production.
+</Warning>
+</Step>
+
+<Step title="Build assets">
+```bash
+npm run build
+```
+</Step>
+
+<Step title="Optimize application">
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+</Step>
+
+</Steps>
+
+## Optimization
+
+### Configuration Caching
+
+Cache your configuration files for faster loading:
+
+```bash
+php artisan config:cache
+```
+
+This combines all configuration files into a single cached file.
+
+<Info>
+After caching configuration, the `env()` helper will only work within configuration files.
+</Info>
+
+### Route Caching
+
+Cache your routes to speed up route registration:
+
+```bash
+php artisan route:cache
+```
+
+<Note>
+Route caching doesn't support closure-based routes. All routes must use controller classes.
+</Note>
+
+### View Caching
+
+Precompile all Blade templates:
+
+```bash
+php artisan view:cache
+```
+
+### Autoloader Optimization
+
+Optimize Composer's autoloader:
+
+```bash
+composer install --optimize-autoloader --no-dev
+```
+
+### Event Caching
+
+Cache event to listener mappings:
+
+```bash
+php artisan event:cache
+```
+
+### Asset Optimization
+
+Vite automatically optimizes assets when building for production:
+
+```json package.json
+{
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  }
+}
+```
+
+The build process:
+- Minifies JavaScript and CSS
+- Optimizes images
+- Generates versioned filenames for cache busting
+- Creates a production-ready asset manifest
+
+## Server Configuration
+
+### Nginx Configuration
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name yourdomain.com;
+    root /var/www/your-app/public;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.php;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+```
+
+### Apache Configuration
+
+Ensure the `.htaccess` file in the `public` directory is being used:
+
+```apache public/.htaccess
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+```
+
+## Queue Workers
+
+For applications using queues, set up a supervisor configuration:
+
+```ini /etc/supervisor/conf.d/laravel-worker.conf
+[program:laravel-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/your-app/artisan queue:work --tries=3 --timeout=90
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=4
+redirect_stderr=true
+stdout_logfile=/var/www/your-app/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+Start the worker:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start laravel-worker:*
+```
+
+## Task Scheduling
+
+Add a single cron entry to run the Laravel scheduler:
+
+```bash
+crontab -e
+```
+
+Add this line:
+
+```bash
+* * * * * cd /var/www/your-app && php artisan schedule:run >> /dev/null 2>&1
+```
+
+## Zero-Downtime Deployment
+
+<Steps>
+
+<Step title="Enable maintenance mode">
+```bash
+php artisan down --refresh=15 --retry=60
+```
+</Step>
+
+<Step title="Pull latest code">
+```bash
+git pull origin main
+```
+</Step>
+
+<Step title="Update dependencies">
+```bash
+composer install --optimize-autoloader --no-dev
+npm install
+npm run build
+```
+</Step>
+
+<Step title="Run migrations">
+```bash
+php artisan migrate --force
+```
+</Step>
+
+<Step title="Clear and cache">
+```bash
+php artisan config:clear
+php artisan cache:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+</Step>
+
+<Step title="Restart services">
+```bash
+php artisan queue:restart
+sudo systemctl reload php8.2-fpm
+```
+</Step>
+
+<Step title="Disable maintenance mode">
+```bash
+php artisan up
+```
+</Step>
+
+</Steps>
+
+## Deployment Checklist
+
+<Steps>
+
+<Step title="Security">
+- [ ] Set `APP_DEBUG=false`
+- [ ] Set `APP_ENV=production`
+- [ ] Use HTTPS (SSL certificate)
+- [ ] Set secure session and cookie settings
+- [ ] Hide sensitive files (.env, .git)
+- [ ] Configure CORS properly
+</Step>
+
+<Step title="Performance">
+- [ ] Enable configuration caching
+- [ ] Enable route caching
+- [ ] Enable view caching
+- [ ] Optimize Composer autoloader
+- [ ] Build and optimize assets
+- [ ] Configure OPcache
+- [ ] Set up Redis for cache/sessions
+</Step>
+
+<Step title="Monitoring">
+- [ ] Set up error logging
+- [ ] Configure application monitoring
+- [ ] Set up database backups
+- [ ] Configure log rotation
+- [ ] Monitor queue workers
+- [ ] Set up uptime monitoring
+</Step>
+
+<Step title="Infrastructure">
+- [ ] Configure web server (Nginx/Apache)
+- [ ] Set up queue workers with Supervisor
+- [ ] Configure cron for scheduler
+- [ ] Set proper file permissions
+- [ ] Configure firewall rules
+- [ ] Set up database connection pooling
+</Step>
+
+</Steps>
+
+## Deployment Platforms
+
+### Laravel Forge
+
+Laravel Forge provides automated server provisioning and deployment:
+
+- Automatic server setup
+- Zero-downtime deployments
+- SSL certificate management
+- Queue worker management
+- Scheduled job management
+
+### Laravel Vapor
+
+Serverless deployment platform for Laravel:
+
+- Auto-scaling
+- Database and cache management
+- Asset compilation and CDN
+- Environment management
+
+### Docker
+
+Containerize your Laravel application:
+
+```dockerfile Dockerfile
+FROM php:8.2-fpm
+
+RUN apt-get update && apt-get install -y \
+    git curl libpng-dev libonig-dev libxml2-dev zip unzip
+
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
+
+COPY . .
+
+RUN composer install --optimize-autoloader --no-dev
+
+RUN php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
+
+EXPOSE 9000
+```
+
+## Troubleshooting
+
+### Clear all caches
+
+```bash
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+### Permission issues
+
+```bash
+sudo chown -R $USER:www-data storage
+sudo chown -R $USER:www-data bootstrap/cache
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+```
+
+### Restart queue workers
+
+```bash
+php artisan queue:restart
+```
+
+<Tip>
+Always test your deployment process in a staging environment before deploying to production.
+</Tip>

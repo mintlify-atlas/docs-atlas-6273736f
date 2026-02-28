@@ -1,0 +1,484 @@
+---
+title: Middleware
+description: Understand how Laravel's middleware pipeline filters and processes HTTP requests before they reach your application
+---
+
+Middleware provides a convenient mechanism for filtering and inspecting HTTP requests entering your application. Each middleware can examine requests, perform operations, and either pass the request to the next middleware or terminate the request entirely.
+
+## How middleware works
+
+Middleware forms a pipeline through which requests flow before reaching your application logic. Think of middleware as layers of an onion:
+
+<Steps>
+  <Step title="Request enters">
+    The HTTP request enters through `public/index.php` and is captured by the framework.
+  </Step>
+
+  <Step title="Middleware pipeline">
+    The request passes through each registered middleware in order. Each middleware can:
+    - Inspect or modify the request
+    - Perform operations (logging, authentication, etc.)
+    - Pass the request to the next middleware
+    - Terminate the request and return a response
+  </Step>
+
+  <Step title="Route handler">
+    If all middleware passes, the request reaches the controller or route closure.
+  </Step>
+
+  <Step title="Response returns">
+    The response travels back through the middleware stack in reverse order, allowing each middleware to inspect or modify the response.
+  </Step>
+</Steps>
+
+<Info>
+  Middleware executes in the order it's registered for requests, and in reverse order for responses.
+</Info>
+
+## Configuring middleware
+
+In Laravel 11+, middleware is configured in `bootstrap/app.php` using the fluent `withMiddleware()` method:
+
+```php bootstrap/app.php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+```
+
+<Note>
+  The `withMiddleware()` callback receives a `Middleware` instance that provides methods for customizing the middleware stack.
+</Note>
+
+## Middleware groups
+
+Laravel includes predefined middleware groups that bundle common middleware together:
+
+<AccordionGroup>
+  <Accordion title="Web middleware group">
+    Applied to routes in `routes/web.php`, includes:
+
+    - Session handling
+    - CSRF protection
+    - Cookie encryption
+    - View sharing
+
+    ```php bootstrap/app.php
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\CustomWebMiddleware::class,
+        ]);
+    })
+    ```
+  </Accordion>
+
+  <Accordion title="API middleware group">
+    Applied to API routes, includes:
+
+    - Rate limiting
+    - Stateless sessions
+
+    ```php bootstrap/app.php
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(prepend: [
+            \App\Http\Middleware\ApiVersioning::class,
+        ]);
+    })
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Global middleware
+
+Global middleware runs on every request to your application:
+
+```php bootstrap/app.php
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->append(\App\Http\Middleware\LogRequests::class);
+
+    // Or prepend to run before framework middleware
+    $middleware->prepend(\App\Http\Middleware\SecurityHeaders::class);
+})
+```
+
+<Warning>
+  Be cautious when adding global middleware, as it affects performance on every request. Only include middleware that truly needs to run globally.
+</Warning>
+
+## Route middleware
+
+Apply middleware to specific routes or route groups:
+
+```php routes/web.php
+use Illuminate\Support\Facades\Route;
+
+// Single middleware
+Route::get('/dashboard', function () {
+    //
+})->middleware('auth');
+
+// Multiple middleware
+Route::get('/admin', function () {
+    //
+})->middleware(['auth', 'admin']);
+
+// Middleware groups
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/profile', function () {
+        //
+    });
+
+    Route::get('/settings', function () {
+        //
+    });
+});
+```
+
+## Middleware aliases
+
+Register middleware aliases for cleaner route definitions:
+
+```php bootstrap/app.php
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->alias([
+        'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'subscribed' => \App\Http\Middleware\EnsureUserIsSubscribed::class,
+    ]);
+})
+```
+
+Then use the alias in routes:
+
+```php routes/web.php
+Route::get('/admin/dashboard', function () {
+    //
+})->middleware('admin');
+```
+
+## Creating custom middleware
+
+Generate middleware using Artisan:
+
+```bash
+php artisan make:middleware EnsureTokenIsValid
+```
+
+This creates a middleware class in `app/Http/Middleware/`:
+
+```php app/Http/Middleware/EnsureTokenIsValid.php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureTokenIsValid
+{
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        if ($request->input('token') !== 'my-secret-token') {
+            return redirect('home');
+        }
+
+        return $next($request);
+    }
+}
+```
+
+### Before middleware
+
+Perform operations before the request reaches the application:
+
+```php app/Http/Middleware/LogRequest.php
+public function handle(Request $request, Closure $next): Response
+{
+    // Perform action before request
+    Log::info('Request URL: ' . $request->url());
+    Log::info('Request Method: ' . $request->method());
+
+    return $next($request);
+}
+```
+
+### After middleware
+
+Perform operations after the application generates a response:
+
+```php app/Http/Middleware/AddSecurityHeaders.php
+public function handle(Request $request, Closure $next): Response
+{
+    $response = $next($request);
+
+    // Perform action after response
+    $response->headers->set('X-Frame-Options', 'DENY');
+    $response->headers->set('X-Content-Type-Options', 'nosniff');
+    $response->headers->set('X-XSS-Protection', '1; mode=block');
+
+    return $response;
+}
+```
+
+### Before and after middleware
+
+Combine both patterns:
+
+```php app/Http/Middleware/PerformanceMonitor.php
+public function handle(Request $request, Closure $next): Response
+{
+    $startTime = microtime(true);
+
+    // Before: Log request start
+    Log::debug('Request started', ['url' => $request->url()]);
+
+    $response = $next($request);
+
+    // After: Log execution time
+    $executionTime = microtime(true) - $startTime;
+    Log::debug('Request completed', [
+        'url' => $request->url(),
+        'time' => $executionTime,
+    ]);
+
+    return $response;
+}
+```
+
+## Middleware parameters
+
+Pass additional parameters to middleware:
+
+```php app/Http/Middleware/CheckRole.php
+public function handle(Request $request, Closure $next, string $role): Response
+{
+    if (! $request->user()->hasRole($role)) {
+        abort(403, 'Unauthorized');
+    }
+
+    return $next($request);
+}
+```
+
+Specify parameters in routes using colons:
+
+```php routes/web.php
+Route::get('/admin/posts', function () {
+    //
+})->middleware('role:admin');
+
+Route::get('/editor/posts', function () {
+    //
+})->middleware('role:editor');
+
+// Multiple parameters
+Route::get('/premium', function () {
+    //
+})->middleware('subscription:premium,active');
+```
+
+## Common middleware patterns
+
+<AccordionGroup>
+  <Accordion title="Authentication check">
+    ```php app/Http/Middleware/EnsureAuthenticated.php
+    public function handle(Request $request, Closure $next): Response
+    {
+        if (! $request->user()) {
+            return redirect()->route('login');
+        }
+
+        return $next($request);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Role authorization">
+    ```php app/Http/Middleware/EnsureUserHasRole.php
+    public function handle(Request $request, Closure $next, string $role): Response
+    {
+        if (! $request->user()?->hasRole($role)) {
+            abort(403, 'This action is unauthorized.');
+        }
+
+        return $next($request);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Request sanitization">
+    ```php app/Http/Middleware/SanitizeInput.php
+    public function handle(Request $request, Closure $next): Response
+    {
+        $input = $request->all();
+
+        array_walk_recursive($input, function (&$value) {
+            $value = strip_tags($value);
+        });
+
+        $request->merge($input);
+
+        return $next($request);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Response transformation">
+    ```php app/Http/Middleware/ForceJsonResponse.php
+    public function handle(Request $request, Closure $next): Response
+    {
+        $request->headers->set('Accept', 'application/json');
+
+        return $next($request);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Rate limiting">
+    ```php app/Http/Middleware/ThrottleApiRequests.php
+    use Illuminate\Cache\RateLimiter;
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        $key = $request->ip();
+
+        if (app(RateLimiter::class)->tooManyAttempts($key, 60)) {
+            abort(429, 'Too many requests');
+        }
+
+        app(RateLimiter::class)->hit($key);
+
+        return $next($request);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Terminable middleware
+
+Perform work after the response has been sent to the browser:
+
+```php app/Http/Middleware/TerminableMiddleware.php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class TerminableMiddleware
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        return $next($request);
+    }
+
+    public function terminate(Request $request, Response $response): void
+    {
+        // Perform actions after response is sent
+        // This doesn't delay the response to the user
+        Log::info('Response sent', [
+            'status' => $response->getStatusCode(),
+            'url' => $request->url(),
+        ]);
+    }
+}
+```
+
+<Tip>
+  Terminable middleware is perfect for logging, metrics collection, or cleanup tasks that don't need to delay the response.
+</Tip>
+
+## Middleware priority
+
+Control the order middleware executes:
+
+```php bootstrap/app.php
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->priority([
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \App\Http\Middleware\Authenticate::class,
+        \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        \Illuminate\Session\Middleware\AuthenticateSession::class,
+        \App\Http\Middleware\CustomMiddleware::class,
+    ]);
+})
+```
+
+## Best practices
+
+<Steps>
+  <Step title="Keep middleware focused">
+    Each middleware should have a single responsibility. Don't create "kitchen sink" middleware that does too many things.
+  </Step>
+
+  <Step title="Use dependency injection">
+    Inject dependencies through the constructor:
+
+    ```php
+    public function __construct(
+        protected RateLimiter $limiter,
+        protected Logger $logger
+    ) {}
+    ```
+  </Step>
+
+  <Step title="Fail fast">
+    If a middleware needs to reject a request, do it early to avoid unnecessary processing:
+
+    ```php
+    public function handle(Request $request, Closure $next): Response
+    {
+        if (! $this->isValidRequest($request)) {
+            abort(403);
+        }
+
+        return $next($request);
+    }
+    ```
+  </Step>
+
+  <Step title="Test middleware in isolation">
+    Write unit tests for middleware logic:
+
+    ```php
+    public function test_middleware_blocks_unauthenticated_users(): void
+    {
+        $request = Request::create('/admin', 'GET');
+        $middleware = new AuthMiddleware();
+
+        $response = $middleware->handle($request, fn() => response('OK'));
+
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Avoid storing state in middleware properties between requests. Middleware instances may be reused, leading to unexpected behavior.
+</Warning>
+
+<Info>
+  Use `php artisan route:list` to see which middleware is applied to each route in your application.
+</Info>

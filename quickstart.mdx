@@ -1,80 +1,398 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start
+description: Build your first Laravel application in minutes with this hands-on quick start guide.
 ---
 
-## Get started in three steps
+This guide will walk you through creating your first Laravel application, from setting up routes to displaying data in views.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, make sure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- Laravel installed (see [installation guide](/installation))
+- PHP 8.2 or higher
+- A code editor
 
-### Step 2: Deploy your changes
+<Info>
+This guide assumes you've completed the installation and have a fresh Laravel project ready.
+</Info>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+## Start the development server
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+First, navigate to your Laravel project and start the development server:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+```bash
+cd example-app
+php artisan serve
+```
 
-### Step 3: Go live
+Your application will be available at `http://localhost:8000`.
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+## Understanding the default route
+
+Laravel includes a default route in `routes/web.php`. Let's examine it:
+
+```php routes/web.php
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+```
+
+This route:
+- Responds to GET requests at the `/` URL
+- Returns the `welcome` view (located at `resources/views/welcome.blade.php`)
+
+## Create your first route
+
+Let's create a simple route that displays a greeting.
+
+<Steps>
+  <Step title="Add a new route">
+    Open `routes/web.php` and add a new route:
+
+    ```php routes/web.php
+    Route::get('/hello', function () {
+        return 'Hello, Laravel!';
+    });
+    ```
+  </Step>
+
+  <Step title="Test the route">
+    Visit `http://localhost:8000/hello` in your browser. You should see "Hello, Laravel!".
+  </Step>
+</Steps>
+
+## Working with route parameters
+
+Routes can accept dynamic parameters:
+
+```php routes/web.php
+Route::get('/hello/{name}', function ($name) {
+    return "Hello, {$name}!";
+});
+```
+
+Now visit `http://localhost:8000/hello/John` to see a personalized greeting.
+
+<Tip>
+Route parameters are automatically injected into your closure or controller method.
+</Tip>
+
+## Creating views
+
+Instead of returning strings, let's create proper views using Blade templates.
+
+<Steps>
+  <Step title="Create a view file">
+    Create a new file at `resources/views/greeting.blade.php`:
+
+    ```blade resources/views/greeting.blade.php
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Greeting</title>
+    </head>
+    <body>
+        <h1>Hello, {{ $name }}!</h1>
+        <p>Welcome to Laravel.</p>
+    </body>
+    </html>
+    ```
+
+    <Note>
+    The `.blade.php` extension tells Laravel to process this file with the Blade templating engine.
+    </Note>
+  </Step>
+
+  <Step title="Update the route to use the view">
+    Modify your route to return the view with data:
+
+    ```php routes/web.php
+    Route::get('/hello/{name}', function ($name) {
+        return view('greeting', ['name' => $name]);
+    });
+    ```
+  </Step>
+
+  <Step title="Test the view">
+    Visit `http://localhost:8000/hello/Laravel` to see your new view in action.
+  </Step>
+</Steps>
+
+## Using Blade templates
+
+Blade provides powerful templating features. Let's explore some common patterns:
+
+### Variables and echoing
+
+```blade
+{{ $name }}  <!-- Escaped output -->
+{!! $html !!}  <!-- Unescaped output -->
+```
+
+### Conditional statements
+
+```blade
+@if ($name === 'Laravel')
+    <p>Welcome back, Laravel!</p>
+@else
+    <p>Hello, {{ $name }}!</p>
+@endif
+```
+
+### Loops
+
+```blade
+@foreach ($users as $user)
+    <li>{{ $user->name }}</li>
+@endforeach
+```
+
+## Creating a controller
+
+As your application grows, you'll want to move logic from routes into controllers.
+
+<Steps>
+  <Step title="Generate a controller">
+    Use Artisan to create a new controller:
+
+    ```bash
+    php artisan make:controller GreetingController
+    ```
+
+    This creates a new file at `app/Http/Controllers/GreetingController.php`.
+  </Step>
+
+  <Step title="Add a method to the controller">
+    Open the controller and add a method:
+
+    ```php app/Http/Controllers/GreetingController.php
+    <?php
+
+    namespace App\Http\Controllers;
+
+    use Illuminate\Http\Request;
+
+    class GreetingController extends Controller
+    {
+        public function show($name)
+        {
+            return view('greeting', ['name' => $name]);
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Update the route to use the controller">
+    Modify your route in `routes/web.php`:
+
+    ```php routes/web.php
+    use App\Http\Controllers\GreetingController;
+
+    Route::get('/hello/{name}', [GreetingController::class, 'show']);
+    ```
+  </Step>
+</Steps>
+
+## Understanding the Artisan CLI
+
+Artisan is Laravel's command-line interface. It provides helpful commands for development:
+
+```bash
+#!/usr/bin/env php
+<?php
+
+use Illuminate\Foundation\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+// Register the Composer autoloader...
+require __DIR__.'/vendor/autoload.php';
+
+// Bootstrap Laravel and handle the command...
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+$status = $app->handleCommand(new ArgvInput);
+
+exit($status);
+```
+
+### Useful Artisan commands
+
+<CodeGroup>
+```bash Development
+# Start development server
+php artisan serve
+
+# Clear application cache
+php artisan cache:clear
+
+# Clear configuration cache
+php artisan config:clear
+
+# View all routes
+php artisan route:list
+```
+
+```bash Database
+# Run migrations
+php artisan migrate
+
+# Rollback migrations
+php artisan migrate:rollback
+
+# Create a new migration
+php artisan make:migration create_posts_table
+```
+
+```bash Code Generation
+# Create a controller
+php artisan make:controller PostController
+
+# Create a model
+php artisan make:model Post
+
+# Create a model with migration
+php artisan make:model Post -m
+```
+
+```bash Application
+# Generate application key
+php artisan key:generate
+
+# Enter tinker (REPL)
+php artisan tinker
+
+# List all commands
+php artisan list
+```
+</CodeGroup>
+
+<Tip>
+Run `php artisan` without arguments to see all available commands.
+</Tip>
+
+## Application bootstrap
+
+Laravel's application bootstrap process is defined in `bootstrap/app.php`:
+
+```php bootstrap/app.php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+```
+
+This configuration:
+- Loads web routes from `routes/web.php`
+- Loads console commands from `routes/console.php`
+- Provides a `/up` health check endpoint
+- Allows middleware and exception handling customization
+
+## Building a complete example
+
+Let's build a simple "About" page with multiple sections.
+
+<Steps>
+  <Step title="Create the route">
+    Add to `routes/web.php`:
+
+    ```php routes/web.php
+    Route::get('/about', function () {
+        return view('about', [
+            'title' => 'About Laravel',
+            'features' => [
+                'Simple, fast routing engine',
+                'Powerful dependency injection container',
+                'Expressive, intuitive database ORM',
+                'Database agnostic schema migrations',
+                'Robust background job processing',
+            ],
+        ]);
+    });
+    ```
+  </Step>
+
+  <Step title="Create the view">
+    Create `resources/views/about.blade.php`:
+
+    ```blade resources/views/about.blade.php
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{{ $title }}</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+            }
+            h1 { color: #FF2D20; }
+            ul { line-height: 1.8; }
+        </style>
+    </head>
+    <body>
+        <h1>{{ $title }}</h1>
+        
+        <p>Laravel is a web application framework with expressive, elegant syntax.</p>
+        
+        <h2>Key Features</h2>
+        <ul>
+            @foreach ($features as $feature)
+                <li>{{ $feature }}</li>
+            @endforeach
+        </ul>
+        
+        <p><a href="/introduction">Back to home</a></p>
+    </body>
+    </html>
+    ```
+  </Step>
+
+  <Step title="Test the page">
+    Visit `http://localhost:8000/about` to see your new page.
+  </Step>
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Congratulations! You've created your first Laravel routes, views, and controller. Here's what to explore next:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Routing" icon="route" href="https://laravel.com/docs/routing">
+    Learn advanced routing techniques and route groups
+  </Card>
+  <Card title="Blade templates" icon="file-code" href="https://laravel.com/docs/blade">
+    Master Blade's templating features and components
+  </Card>
+  <Card title="Database" icon="database" href="https://laravel.com/docs/database">
+    Connect to a database and use Eloquent ORM
+  </Card>
+  <Card title="Validation" icon="shield-check" href="https://laravel.com/docs/validation">
+    Validate user input and handle form submissions
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Warning>
+Remember to set `APP_DEBUG=false` in your `.env` file when deploying to production.
+</Warning>

@@ -1,0 +1,426 @@
+---
+title: Application structure
+description: Understand Laravel's directory structure and how to organize your application code effectively
+---
+
+Laravel follows a well-organized directory structure that separates concerns and makes it easy to locate specific functionality. This guide explains the purpose of each directory and how they work together.
+
+## Root directory structure
+
+The Laravel application root contains several directories and configuration files:
+
+```
+laravel-app/
+├── app/
+├── bootstrap/
+├── config/
+├── database/
+├── public/
+├── resources/
+├── routes/
+├── storage/
+├── tests/
+├── vendor/
+├── .env
+├── artisan
+├── composer.json
+└── package.json
+```
+
+## Core directories
+
+<AccordionGroup>
+  <Accordion title="app/ - Application code">
+    The `app/` directory contains your application's core code. This is where you'll spend most of your development time.
+
+    ```
+    app/
+    ├── Http/
+    │   └── Controllers/
+    │       └── Controller.php
+    ├── Models/
+    │   └── User.php
+    └── Providers/
+        └── AppServiceProvider.php
+    ```
+
+    ### HTTP layer
+
+    The `app/Http/` directory contains controllers, middleware, and form requests:
+
+    ```php app/Http/Controllers/Controller.php
+    <?php
+
+    namespace App\Http\Controllers;
+
+    abstract class Controller
+    {
+        //
+    }
+    ```
+
+    <Tip>
+      Controllers in Laravel 11+ extend from an abstract base `Controller` class. This provides a clean foundation for adding shared functionality.
+    </Tip>
+
+    ### Models
+
+    The `app/Models/` directory contains your Eloquent models:
+
+    ```php app/Models/User.php
+    <?php
+
+    namespace App\Models;
+
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Foundation\Auth\User as Authenticatable;
+    use Illuminate\Notifications\Notifiable;
+
+    class User extends Authenticatable
+    {
+        use HasFactory, Notifiable;
+
+        protected $fillable = [
+            'name',
+            'email',
+            'password',
+        ];
+
+        protected $hidden = [
+            'password',
+            'remember_token',
+        ];
+
+        protected function casts(): array
+        {
+            return [
+                'email_verified_at' => 'datetime',
+                'password' => 'hashed',
+            ];
+        }
+    }
+    ```
+
+    ### Providers
+
+    The `app/Providers/` directory contains service providers that bootstrap application services:
+
+    ```php app/Providers/AppServiceProvider.php
+    <?php
+
+    namespace App\Providers;
+
+    use Illuminate\Support\ServiceProvider;
+
+    class AppServiceProvider extends ServiceProvider
+    {
+        public function register(): void
+        {
+            //
+        }
+
+        public function boot(): void
+        {
+            //
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="bootstrap/ - Framework bootstrapping">
+    Contains files that bootstrap the framework and configure autoloading:
+
+    ```
+    bootstrap/
+    ├── app.php
+    ├── cache/
+    └── providers.php
+    ```
+
+    <Info>
+      The `bootstrap/app.php` file creates and configures the application instance. This is where routing, middleware, and exception handling are registered.
+    </Info>
+
+    The `providers.php` file lists all service providers:
+
+    ```php bootstrap/providers.php
+    <?php
+
+    return [
+        App\Providers\AppServiceProvider::class,
+    ];
+    ```
+  </Accordion>
+
+  <Accordion title="config/ - Configuration files">
+    Contains all application configuration organized by concern:
+
+    ```
+    config/
+    ├── app.php          # Application settings
+    ├── auth.php         # Authentication configuration
+    ├── cache.php        # Cache driver settings
+    ├── database.php     # Database connections
+    ├── filesystems.php  # Storage configuration
+    ├── logging.php      # Log channels
+    ├── mail.php         # Email settings
+    ├── queue.php        # Queue connections
+    ├── services.php     # Third-party services
+    └── session.php      # Session configuration
+    ```
+
+    Example database configuration:
+
+    ```php config/database.php
+    'default' => env('DB_CONNECTION', 'sqlite'),
+
+    'connections' => [
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => env('DB_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+        ],
+    ],
+    ```
+
+    <Warning>
+      Never commit the `.env` file to version control. Use `.env.example` as a template for required environment variables.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="database/ - Database files">
+    Contains migrations, seeders, and model factories:
+
+    ```
+    database/
+    ├── factories/
+    │   └── UserFactory.php
+    ├── migrations/
+    │   ├── 0001_01_01_000000_create_users_table.php
+    │   ├── 0001_01_01_000001_create_cache_table.php
+    │   └── 0001_01_01_000002_create_jobs_table.php
+    └── seeders/
+        └── DatabaseSeeder.php
+    ```
+
+    <Note>
+      Migrations are versioned and timestamped, ensuring they run in the correct order across all environments.
+    </Note>
+  </Accordion>
+
+  <Accordion title="public/ - Web root">
+    The only directory accessible from the web. Contains the front controller and public assets:
+
+    ```
+    public/
+    ├── index.php    # Application entry point
+    ├── .htaccess    # Apache configuration
+    └── favicon.ico
+    ```
+
+    ```php public/index.php
+    <?php
+
+    use Illuminate\Foundation\Application;
+    use Illuminate\Http\Request;
+
+    define('LARAVEL_START', microtime(true));
+
+    // Register the Composer autoloader...
+    require __DIR__.'/../vendor/autoload.php';
+
+    // Bootstrap Laravel and handle the request...
+    $app = require_once __DIR__.'/../bootstrap/app.php';
+
+    $app->handleRequest(Request::capture());
+    ```
+
+    <Tip>
+      Configure your web server to point to the `public/` directory, not the application root.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="resources/ - Raw assets">
+    Contains uncompiled assets and views:
+
+    ```
+    resources/
+    ├── css/
+    │   └── app.css
+    ├── js/
+    │   └── app.js
+    └── views/
+        └── welcome.blade.php
+    ```
+
+    Assets in `resources/css` and `resources/js` are compiled using Vite and output to `public/build`.
+  </Accordion>
+
+  <Accordion title="routes/ - Route definitions">
+    Contains all application route definitions:
+
+    ```
+    routes/
+    ├── console.php  # Console commands
+    └── web.php      # Web routes
+    ```
+
+    Example web routes:
+
+    ```php routes/web.php
+    <?php
+
+    use Illuminate\Support\Facades\Route;
+
+    Route::get('/', function () {
+        return view('welcome');
+    });
+    ```
+
+    Example console commands:
+
+    ```php routes/console.php
+    <?php
+
+    use Illuminate\Foundation\Inspiring;
+    use Illuminate\Support\Facades\Artisan;
+
+    Artisan::command('inspire', function () {
+        $this->comment(Inspiring::quote());
+    })->purpose('Display an inspiring quote');
+    ```
+  </Accordion>
+
+  <Accordion title="storage/ - Generated files">
+    Contains logs, cached files, and uploaded files:
+
+    ```
+    storage/
+    ├── app/
+    │   ├── private/     # Private file storage
+    │   └── public/      # Public file storage
+    ├── framework/
+    │   ├── cache/
+    │   ├── sessions/
+    │   ├── testing/
+    │   └── views/
+    └── logs/
+        └── laravel.log
+    ```
+
+    <Warning>
+      The `storage/` and `bootstrap/cache/` directories must be writable by your web server.
+    </Warning>
+
+    <Info>
+      Files in `storage/app/public/` should be symlinked to `public/storage` using `php artisan storage:link`.
+    </Info>
+  </Accordion>
+
+  <Accordion title="tests/ - Application tests">
+    Contains PHPUnit tests organized into feature and unit tests:
+
+    ```
+    tests/
+    ├── Feature/
+    │   └── ExampleTest.php
+    ├── Unit/
+    │   └── ExampleTest.php
+    └── TestCase.php
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Organization best practices
+
+<Steps>
+  <Step title="Follow PSR-4 autoloading">
+    The `app/` directory follows PSR-4 autoloading with the `App` namespace:
+
+    ```json composer.json
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Create logical groupings">
+    As your application grows, create additional directories in `app/`:
+
+    - `app/Services/` - Business logic services
+    - `app/Actions/` - Single-purpose action classes
+    - `app/Events/` - Event classes
+    - `app/Listeners/` - Event listeners
+    - `app/Jobs/` - Queueable jobs
+    - `app/Mail/` - Mailable classes
+    - `app/Notifications/` - Notification classes
+  </Step>
+
+  <Step title="Keep controllers thin">
+    Move business logic to services, actions, or model methods. Controllers should only handle HTTP concerns.
+  </Step>
+
+  <Step title="Use meaningful namespaces">
+    Organize code by feature or domain when appropriate:
+
+    ```
+    app/
+    ├── Billing/
+    │   ├── PaymentService.php
+    │   └── InvoiceGenerator.php
+    └── User/
+        ├── UserRepository.php
+        └── ProfileService.php
+    ```
+  </Step>
+</Steps>
+
+## Key files
+
+<CardGroup cols={2}>
+  <Card title=".env" icon="gear">
+    Environment-specific configuration. Never commit this file.
+  </Card>
+
+  <Card title="artisan" icon="terminal">
+    Command-line interface for Laravel. Run `php artisan` to see available commands.
+  </Card>
+
+  <Card title="composer.json" icon="box">
+    PHP dependencies and autoloading configuration.
+  </Card>
+
+  <Card title="package.json" icon="node-js">
+    JavaScript dependencies managed by npm.
+  </Card>
+
+  <Card title="vite.config.js" icon="bolt">
+    Asset bundling configuration using Vite.
+  </Card>
+
+  <Card title="phpunit.xml" icon="vial">
+    PHPUnit testing framework configuration.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Use `php artisan about` to see an overview of your application's environment and configuration.
+</Tip>

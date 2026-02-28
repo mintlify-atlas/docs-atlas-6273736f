@@ -1,0 +1,381 @@
+---
+title: Service providers
+description: Learn how service providers bootstrap application services and register bindings in Laravel's service container
+---
+
+Service providers are the central place of all Laravel application bootstrapping. They are responsible for binding services into the service container, registering event listeners, middleware, and even routes.
+
+## What are service providers?
+
+Service providers are classes that configure and bootstrap your application's services. They contain two primary methods:
+
+- `register()`: Bind services into the container
+- `boot()`: Perform actions after all services are registered
+
+<Info>
+  Service providers are called "providers" because they provide (register) services to the application.
+</Info>
+
+## The AppServiceProvider
+
+Every Laravel application includes an `AppServiceProvider` - the central location for application-specific bootstrapping:
+
+```php app/Providers/AppServiceProvider.php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+```
+
+<Tip>
+  Laravel 11+ uses a single `AppServiceProvider` for most bootstrapping, simplifying the provider structure compared to previous versions.
+</Tip>
+
+## Registering providers
+
+All service providers are registered in the `bootstrap/providers.php` file:
+
+```php bootstrap/providers.php
+<?php
+
+return [
+    App\Providers\AppServiceProvider::class,
+];
+```
+
+Laravel automatically loads all providers in this array during the application bootstrap process.
+
+## Register vs boot methods
+
+Understanding when to use `register()` versus `boot()` is crucial:
+
+<AccordionGroup>
+  <Accordion title="The register method">
+    The `register()` method should **only** bind services into the container. Never attempt to:
+
+    - Register event listeners
+    - Register routes
+    - Use services from other providers
+
+    ```php app/Providers/AppServiceProvider.php
+    public function register(): void
+    {
+        // Bind an interface to a concrete implementation
+        $this->app->bind(
+            \App\Contracts\PaymentGateway::class,
+            \App\Services\StripePaymentGateway::class
+        );
+
+        // Register a singleton
+        $this->app->singleton(
+            \App\Services\MetricsCollector::class,
+            function ($app) {
+                return new \App\Services\MetricsCollector(
+                    $app->make('config')->get('metrics.driver')
+                );
+            }
+        );
+
+        // Conditional binding
+        if ($this->app->environment('local')) {
+            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
+        }
+    }
+    ```
+
+    <Warning>
+      Within the `register()` method, you cannot depend on other services being available. Always use the `boot()` method for cross-service interactions.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="The boot method">
+    The `boot()` method is called after all providers have been registered. Here you can safely use other services:
+
+    ```php app/Providers/AppServiceProvider.php
+    use Illuminate\Support\Facades\View;
+    use Illuminate\Support\Facades\Gate;
+    use Illuminate\Database\Eloquent\Model;
+
+    public function boot(): void
+    {
+        // Share data with all views
+        View::share('appName', config('app.name'));
+
+        // Define authorization gates
+        Gate::define('update-post', function ($user, $post) {
+            return $user->id === $post->user_id;
+        });
+
+        // Configure Eloquent behavior
+        Model::preventLazyLoading(! $this->app->isProduction());
+        Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
+
+        // Register model observers
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
+
+        // Configure macros
+        \Illuminate\Support\Str::macro('toKebabCase', function ($string) {
+            return str_replace(' ', '-', strtolower($string));
+        });
+    }
+    ```
+
+    <Info>
+      The `boot()` method can type-hint dependencies, which will be automatically resolved from the service container.
+    </Info>
+
+    ```php
+    public function boot(\Illuminate\Contracts\Routing\ResponseFactory $response): void
+    {
+        // Use the injected response factory
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common provider patterns
+
+<Steps>
+  <Step title="Binding interfaces to implementations">
+    Use providers to bind interfaces to concrete implementations, enabling dependency inversion:
+
+    ```php
+    public function register(): void
+    {
+        $this->app->bind(
+            \App\Contracts\ImageProcessor::class,
+            \App\Services\ImagickProcessor::class
+        );
+    }
+    ```
+
+    Now any class that type-hints `ImageProcessor` will receive an instance of `ImagickProcessor`.
+  </Step>
+
+  <Step title="Registering singletons">
+    Singletons ensure the same instance is returned every time:
+
+    ```php
+    public function register(): void
+    {
+        $this->app->singleton(\App\Services\Cache::class, function ($app) {
+            return new \App\Services\Cache(
+                $app->make('redis'),
+                config('cache.ttl')
+            );
+        });
+    }
+    ```
+  </Step>
+
+  <Step title="Extending existing services">
+    Modify or extend framework services in the `boot()` method:
+
+    ```php
+    use Illuminate\Support\Facades\Validator;
+
+    public function boot(): void
+    {
+        Validator::extend('phone', function ($attribute, $value, $parameters, $validator) {
+            return preg_match('/^([0-9\s\-\+\(\)]*)$/', $value);
+        });
+    }
+    ```
+  </Step>
+
+  <Step title="Conditional registration">
+    Register services based on environment or configuration:
+
+    ```php
+    public function register(): void
+    {
+        if ($this->app->environment('local')) {
+            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
+        }
+
+        if (config('app.debug')) {
+            $this->app->singleton('debugger', \App\Services\Debugger::class);
+        }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Creating custom service providers
+
+Create new providers using Artisan:
+
+```bash
+php artisan make:provider PaymentServiceProvider
+```
+
+This generates a provider class in `app/Providers/`:
+
+```php app/Providers/PaymentServiceProvider.php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class PaymentServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton(\App\Services\PaymentGateway::class, function ($app) {
+            return new \App\Services\PaymentGateway(
+                config('services.stripe.key'),
+                config('services.stripe.secret')
+            );
+        });
+    }
+
+    public function boot(): void
+    {
+        // Register payment-related event listeners
+        $this->app['events']->listen(
+            \App\Events\PaymentProcessed::class,
+            \App\Listeners\SendPaymentConfirmation::class
+        );
+    }
+}
+```
+
+Then register it in `bootstrap/providers.php`:
+
+```php bootstrap/providers.php
+<?php
+
+return [
+    App\Providers\AppServiceProvider::class,
+    App\Providers\PaymentServiceProvider::class,
+];
+```
+
+## Deferred providers
+
+For performance, defer loading providers until their services are actually needed:
+
+```php app/Providers/MetricsServiceProvider.php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Support\ServiceProvider;
+
+class MetricsServiceProvider extends ServiceProvider implements DeferrableProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton('metrics', function ($app) {
+            return new \App\Services\MetricsCollector;
+        });
+    }
+
+    public function provides(): array
+    {
+        return ['metrics'];
+    }
+}
+```
+
+<Note>
+  Deferred providers are only loaded when one of the services returned by `provides()` is resolved from the container.
+</Note>
+
+## Provider organization strategies
+
+<CardGroup cols={2}>
+  <Card title="Single provider" icon="layer-group">
+    Small to medium applications work well with just `AppServiceProvider`. Keep it simple until you need more organization.
+  </Card>
+
+  <Card title="Feature-based providers" icon="puzzle-piece">
+    Create providers for major features:
+    - `BillingServiceProvider`
+    - `ReportingServiceProvider`
+    - `NotificationServiceProvider`
+  </Card>
+
+  <Card title="Infrastructure providers" icon="server">
+    Separate infrastructure concerns:
+    - `DatabaseServiceProvider`
+    - `CacheServiceProvider`
+    - `QueueServiceProvider`
+  </Card>
+
+  <Card title="Third-party providers" icon="plug">
+    Isolate third-party integrations:
+    - `StripeServiceProvider`
+    - `TwilioServiceProvider`
+    - `AwsServiceProvider`
+  </Card>
+</CardGroup>
+
+## Best practices
+
+<Warning>
+  Avoid performing heavy operations in service providers, especially in the `register()` method. Keep bootstrapping fast to maintain quick request handling.
+</Warning>
+
+<Steps>
+  <Step title="Keep providers focused">
+    Each provider should have a single, clear purpose. Don't create a "catch-all" provider for unrelated services.
+  </Step>
+
+  <Step title="Use bindings over facades in providers">
+    Within providers, prefer `$this->app->make()` and `$this->app->bind()` over facades for better testability.
+  </Step>
+
+  <Step title="Document complex bindings">
+    Add comments explaining why certain bindings are configured, especially conditional logic:
+
+    ```php
+    // Use Imagick in production for better performance,
+    // but GD in development for easier local setup
+    if ($this->app->isProduction()) {
+        $this->app->bind(ImageProcessor::class, ImagickProcessor::class);
+    } else {
+        $this->app->bind(ImageProcessor::class, GdProcessor::class);
+    }
+    ```
+  </Step>
+
+  <Step title="Test provider registration">
+    Write tests to ensure your providers correctly register services:
+
+    ```php
+    public function test_payment_gateway_is_registered(): void
+    {
+        $gateway = $this->app->make(PaymentGateway::class);
+
+        $this->assertInstanceOf(StripeGateway::class, $gateway);
+    }
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Run `php artisan about` to see all registered providers and their status in your application.
+</Tip>

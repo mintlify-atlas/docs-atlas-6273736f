@@ -1,0 +1,581 @@
+---
+title: Testing
+description: Write and run tests with PHPUnit in Laravel
+---
+
+## Overview
+
+Laravel provides a robust testing framework built on PHPUnit, making it easy to test your application's features and units of code.
+
+## Test Configuration
+
+Your PHPUnit configuration is defined in `phpunit.xml`:
+
+```xml phpunit.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>
+```
+
+<Info>
+The testing environment uses an in-memory SQLite database by default, providing fast and isolated test execution.
+</Info>
+
+## Test Suites
+
+Laravel organizes tests into two main categories:
+
+### Unit Tests
+
+Unit tests focus on testing small, isolated pieces of code. They are located in `tests/Unit/` and extend PHPUnit's `TestCase`:
+
+```php tests/Unit/ExampleTest.php
+<?php
+
+namespace Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+class ExampleTest extends TestCase
+{
+    /**
+     * A basic test example.
+     */
+    public function test_that_true_is_true(): void
+    {
+        $this->assertTrue(true);
+    }
+}
+```
+
+<Note>
+Unit tests should not boot the Laravel application. They test individual classes and methods in isolation.
+</Note>
+
+### Feature Tests
+
+Feature tests test larger portions of your application, including HTTP requests, database interactions, and multiple components working together. They are located in `tests/Feature/` and extend Laravel's `TestCase`:
+
+```php tests/Feature/ExampleTest.php
+<?php
+
+namespace Tests\Feature;
+
+use Tests\TestCase;
+
+class ExampleTest extends TestCase
+{
+    /**
+     * A basic test example.
+     */
+    public function test_the_application_returns_a_successful_response(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+    }
+}
+```
+
+### Base TestCase
+
+Both feature tests extend the base `TestCase` class:
+
+```php tests/TestCase.php
+<?php
+
+namespace Tests;
+
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+
+abstract class TestCase extends BaseTestCase
+{
+    //
+}
+```
+
+<Tip>
+Add common setup logic, helper methods, or traits to the base `TestCase` class to share across all feature tests.
+</Tip>
+
+## Running Tests
+
+<Steps>
+
+<Step title="Run all tests">
+Execute all tests using Artisan:
+
+```bash
+php artisan test
+```
+
+Or using PHPUnit directly:
+
+```bash
+vendor/bin/phpunit
+```
+</Step>
+
+<Step title="Run specific test suites">
+```bash
+# Run only unit tests
+php artisan test --testsuite=Unit
+
+# Run only feature tests
+php artisan test --testsuite=Feature
+```
+</Step>
+
+<Step title="Run specific test files">
+```bash
+# Run a specific test file
+php artisan test tests/Feature/ExampleTest.php
+
+# Run a specific test method
+php artisan test --filter test_the_application_returns_a_successful_response
+```
+</Step>
+
+</Steps>
+
+### Composer Test Script
+
+The project includes a convenient composer script for running tests:
+
+```json composer.json
+"scripts": {
+    "test": [
+        "@php artisan config:clear --ansi",
+        "@php artisan test"
+    ]
+}
+```
+
+Run tests using composer:
+
+```bash
+composer test
+```
+
+<Info>
+The test script clears the configuration cache before running tests to ensure a clean testing environment.
+</Info>
+
+## Writing Tests
+
+### Creating Tests
+
+<CodeGroup>
+
+```bash Unit Test
+# Create a unit test
+php artisan make:test UserTest --unit
+```
+
+```bash Feature Test
+# Create a feature test
+php artisan make:test UserManagementTest
+```
+
+</CodeGroup>
+
+### Test Structure
+
+Tests follow a simple structure:
+
+```php
+public function test_user_can_be_created(): void
+{
+    // Arrange - Set up test data
+    $userData = [
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+        'password' => 'password123',
+    ];
+    
+    // Act - Perform the action
+    $user = User::create($userData);
+    
+    // Assert - Verify the results
+    $this->assertDatabaseHas('users', [
+        'email' => 'john@example.com',
+    ]);
+    
+    $this->assertEquals('John Doe', $user->name);
+}
+```
+
+### HTTP Tests
+
+<CodeGroup>
+
+```php GET Request
+public function test_user_profile_page(): void
+{
+    $user = User::factory()->create();
+    
+    $response = $this->actingAs($user)->get('/profile');
+    
+    $response->assertStatus(200)
+        ->assertSee($user->name);
+}
+```
+
+```php POST Request
+public function test_user_can_create_post(): void
+{
+    $user = User::factory()->create();
+    
+    $response = $this->actingAs($user)->post('/posts', [
+        'title' => 'Test Post',
+        'content' => 'Post content here',
+    ]);
+    
+    $response->assertStatus(201)
+        ->assertJson(['message' => 'Post created']);
+    
+    $this->assertDatabaseHas('posts', [
+        'title' => 'Test Post',
+        'user_id' => $user->id,
+    ]);
+}
+```
+
+```php JSON API
+public function test_api_returns_users(): void
+{
+    User::factory()->count(3)->create();
+    
+    $response = $this->getJson('/api/users');
+    
+    $response->assertStatus(200)
+        ->assertJsonCount(3, 'data')
+        ->assertJsonStructure([
+            'data' => [
+                '*' => ['id', 'name', 'email'],
+            ],
+        ]);
+}
+```
+
+</CodeGroup>
+
+### Database Testing
+
+<CodeGroup>
+
+```php Migrations
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+class UserTest extends TestCase
+{
+    use RefreshDatabase;
+    
+    public function test_users_table_is_empty(): void
+    {
+        $count = User::count();
+        
+        $this->assertEquals(0, $count);
+    }
+}
+```
+
+```php Factories
+public function test_user_factory_creates_user(): void
+{
+    $user = User::factory()->create([
+        'name' => 'John Doe',
+    ]);
+    
+    $this->assertInstanceOf(User::class, $user);
+    $this->assertEquals('John Doe', $user->name);
+    $this->assertNotNull($user->email);
+}
+```
+
+```php Seeders
+public function test_database_seeder(): void
+{
+    $this->seed();
+    
+    $this->assertDatabaseCount('users', 10);
+    $this->assertDatabaseHas('users', [
+        'email' => 'admin@example.com',
+    ]);
+}
+```
+
+</CodeGroup>
+
+### Authentication Tests
+
+```php
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+class AuthenticationTest extends TestCase
+{
+    use RefreshDatabase;
+    
+    public function test_users_can_login(): void
+    {
+        $user = User::factory()->create([
+            'password' => bcrypt('password'),
+        ]);
+        
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+        
+        $this->assertAuthenticated();
+        $response->assertRedirect('/dashboard');
+    }
+    
+    public function test_users_can_logout(): void
+    {
+        $user = User::factory()->create();
+        
+        $response = $this->actingAs($user)->post('/logout');
+        
+        $this->assertGuest();
+        $response->assertRedirect('/');
+    }
+}
+```
+
+## Assertions
+
+### Common Assertions
+
+<CodeGroup>
+
+```php Basic Assertions
+$this->assertTrue($value);
+$this->assertFalse($value);
+$this->assertEquals($expected, $actual);
+$this->assertNotEquals($expected, $actual);
+$this->assertNull($value);
+$this->assertNotNull($value);
+$this->assertEmpty($value);
+$this->assertCount(3, $array);
+$this->assertInstanceOf(User::class, $object);
+```
+
+```php HTTP Assertions
+$response->assertStatus(200);
+$response->assertOk();
+$response->assertCreated(); // 201
+$response->assertNotFound(); // 404
+$response->assertForbidden(); // 403
+$response->assertRedirect('/path');
+$response->assertSee('text');
+$response->assertDontSee('text');
+$response->assertViewIs('view.name');
+$response->assertViewHas('key');
+```
+
+```php Database Assertions
+$this->assertDatabaseHas('users', [
+    'email' => 'john@example.com',
+]);
+
+$this->assertDatabaseMissing('users', [
+    'email' => 'deleted@example.com',
+]);
+
+$this->assertDatabaseCount('users', 10);
+
+$this->assertSoftDeleted('users', [
+    'id' => $user->id,
+]);
+```
+
+```php JSON Assertions
+$response->assertJson([
+    'name' => 'John Doe',
+]);
+
+$response->assertJsonPath('user.name', 'John');
+
+$response->assertJsonStructure([
+    'data' => [
+        '*' => ['id', 'name', 'email'],
+    ],
+]);
+
+$response->assertJsonCount(3, 'data');
+```
+
+</CodeGroup>
+
+## Mocking
+
+### Mocking Services
+
+```php
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeEmail;
+
+public function test_welcome_email_is_sent(): void
+{
+    Mail::fake();
+    
+    $user = User::factory()->create();
+    
+    // Trigger email sending
+    event(new UserRegistered($user));
+    
+    Mail::assertSent(WelcomeEmail::class, function ($mail) use ($user) {
+        return $mail->user->id === $user->id;
+    });
+}
+```
+
+### Mocking Events
+
+```php
+use Illuminate\Support\Facades\Event;
+use App\Events\OrderShipped;
+
+public function test_order_shipped_event(): void
+{
+    Event::fake();
+    
+    // Perform action
+    $order->ship();
+    
+    Event::assertDispatched(OrderShipped::class, function ($event) use ($order) {
+        return $event->order->id === $order->id;
+    });
+}
+```
+
+### Mocking Queues
+
+```php
+use Illuminate\Support\Facades\Queue;
+use App\Jobs\ProcessOrder;
+
+public function test_job_is_queued(): void
+{
+    Queue::fake();
+    
+    // Perform action that queues job
+    processOrder($order);
+    
+    Queue::assertPushed(ProcessOrder::class);
+}
+```
+
+## Test Coverage
+
+Generate code coverage reports:
+
+```bash
+php artisan test --coverage
+```
+
+Generate detailed HTML coverage report:
+
+```bash
+vendor/bin/phpunit --coverage-html coverage
+```
+
+<Warning>
+Code coverage requires Xdebug or PCOV PHP extension to be installed.
+</Warning>
+
+## Best Practices
+
+<Steps>
+
+<Step title="Test naming">
+Use descriptive test method names that explain what is being tested:
+
+```php
+// Good
+public function test_user_can_update_their_profile(): void
+
+// Bad
+public function test_update(): void
+```
+</Step>
+
+<Step title="One assertion per test">
+Focus each test on a single behavior:
+
+```php
+// Good - tests one thing
+public function test_user_email_must_be_unique(): void
+{
+    User::factory()->create(['email' => 'test@example.com']);
+    
+    $this->expectException(ValidationException::class);
+    
+    User::factory()->create(['email' => 'test@example.com']);
+}
+```
+</Step>
+
+<Step title="Use factories">
+Leverage factories to create test data:
+
+```php
+// Good
+$user = User::factory()->create();
+
+// Avoid
+$user = new User();
+$user->name = 'Test';
+$user->email = 'test@example.com';
+$user->save();
+```
+</Step>
+
+<Step title="Clean up">
+Use `RefreshDatabase` to ensure a clean state:
+
+```php
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+class UserTest extends TestCase
+{
+    use RefreshDatabase;
+}
+```
+</Step>
+
+</Steps>

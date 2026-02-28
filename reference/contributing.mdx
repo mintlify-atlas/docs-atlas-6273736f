@@ -1,0 +1,321 @@
+---
+title: Contributing
+description: Guide for contributing to the Laravel framework and application skeleton
+---
+
+Thank you for considering contributing to Laravel! This guide will help you understand how to contribute effectively to the Laravel framework and its ecosystem.
+
+## How to Contribute
+
+Contributions to Laravel come in many forms:
+
+<AccordionGroup>
+  <Accordion title="Code Contributions">
+    - Bug fixes
+    - New features
+    - Performance improvements
+    - Refactoring
+    - Tests
+    
+    <Info>All code contributions should follow Laravel's coding standards and include appropriate tests.</Info>
+  </Accordion>
+
+  <Accordion title="Documentation">
+    - Improving existing documentation
+    - Writing new guides
+    - Fixing typos and errors
+    - Adding examples
+    
+    <Note>Documentation contributions are made to the [laravel/docs](https://github.com/laravel/docs) repository.</Note>
+  </Accordion>
+
+  <Accordion title="Bug Reports">
+    - Detailed bug reports with reproduction steps
+    - Screenshots or videos demonstrating issues
+    - Version information and environment details
+    
+    <Info>Use the [GitHub Issues](https://github.com/laravel/framework/issues) tracker to report bugs.</Info>
+  </Accordion>
+
+  <Accordion title="Feature Requests">
+    - Well-thought-out feature proposals
+    - Use cases and examples
+    - Implementation suggestions
+    
+    <Note>Feature requests should be discussed in [GitHub Discussions](https://github.com/laravel/framework/discussions) before creating a pull request.</Note>
+  </Accordion>
+</AccordionGroup>
+
+## Getting Started
+
+### 1. Fork the Repository
+
+Fork the Laravel repository you want to contribute to:
+
+- [laravel/laravel](https://github.com/laravel/laravel) - Application skeleton
+- [laravel/framework](https://github.com/laravel/framework) - Framework core
+- [laravel/docs](https://github.com/laravel/docs) - Documentation
+
+### 2. Clone Your Fork
+
+```bash
+git clone https://github.com/your-username/laravel.git
+cd laravel
+```
+
+### 3. Create a Branch
+
+Create a descriptive branch for your changes:
+
+```bash
+git checkout -b fix-authentication-issue
+# or
+git checkout -b feature-add-api-pagination
+```
+
+<Info>Use descriptive branch names that clearly indicate the purpose of your changes.</Info>
+
+### 4. Make Your Changes
+
+Implement your bug fix or feature following Laravel's coding standards.
+
+### 5. Write Tests
+
+All new features and bug fixes should include tests:
+
+```bash
+php artisan test
+```
+
+<Note>Ensure all existing tests pass before submitting your pull request.</Note>
+
+### 6. Commit Your Changes
+
+Write clear, descriptive commit messages:
+
+```bash
+git add .
+git commit -m "Fix authentication redirect issue"
+```
+
+### 7. Push to Your Fork
+
+```bash
+git push origin fix-authentication-issue
+```
+
+### 8. Create a Pull Request
+
+Go to the original Laravel repository and create a pull request from your fork.
+
+## Contribution Guidelines
+
+### Coding Standards
+
+Laravel follows the PSR-12 coding standard and the PSR-4 autoloading standard.
+
+<AccordionGroup>
+  <Accordion title="Code Style">
+    Use Laravel Pint to automatically format your code:
+    
+    ```bash
+    ./vendor/bin/pint
+    ```
+    
+    <Info>Pint is included in Laravel applications by default. It enforces consistent code style across the project.</Info>
+  </Accordion>
+
+  <Accordion title="Naming Conventions">
+    - **Classes**: PascalCase (e.g., `UserController`)
+    - **Methods**: camelCase (e.g., `getUserById`)
+    - **Variables**: camelCase (e.g., `$userName`)
+    - **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_ATTEMPTS`)
+    - **Database tables**: snake_case, plural (e.g., `user_posts`)
+    - **Model properties**: snake_case (e.g., `created_at`)
+  </Accordion>
+
+  <Accordion title="Documentation Blocks">
+    Use PHPDoc blocks for all classes, methods, and properties:
+    
+    ```php
+    /**
+     * Get the user by ID.
+     *
+     * @param  int  $id
+     * @return \App\Models\User|null
+     */
+    public function getUserById(int $id): ?User
+    {
+        return User::find($id);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Pull Request Guidelines
+
+<AccordionGroup>
+  <Accordion title="Before Submitting">
+    - Ensure all tests pass
+    - Run Laravel Pint to format your code
+    - Update documentation if needed
+    - Rebase your branch on the latest main branch
+    - Keep changes focused on a single issue
+  </Accordion>
+
+  <Accordion title="PR Description">
+    Write a clear description that includes:
+    
+    - **Problem**: What issue does this solve?
+    - **Solution**: How does your PR address the issue?
+    - **Testing**: How did you test your changes?
+    - **Breaking Changes**: Are there any breaking changes?
+    
+    <Info>Reference related issues using GitHub's syntax: `Fixes #123` or `Relates to #456`</Info>
+  </Accordion>
+
+  <Accordion title="PR Size">
+    - Keep PRs small and focused
+    - Split large changes into multiple PRs
+    - Each PR should address a single concern
+    
+    <Note>Smaller PRs are easier to review and more likely to be merged quickly.</Note>
+  </Accordion>
+</AccordionGroup>
+
+### Testing Requirements
+
+<AccordionGroup>
+  <Accordion title="Test Coverage">
+    All new features must include tests:
+    
+    - **Unit tests** for individual methods and classes
+    - **Feature tests** for HTTP requests and responses
+    - **Integration tests** for complex workflows
+  </Accordion>
+
+  <Accordion title="Running Tests">
+    ```bash
+    # Run all tests
+    php artisan test
+    
+    # Run specific test file
+    php artisan test tests/Feature/AuthTest.php
+    
+    # Run tests with coverage
+    php artisan test --coverage
+    ```
+  </Accordion>
+
+  <Accordion title="Test Quality">
+    - Tests should be clear and easy to understand
+    - Use descriptive test method names
+    - Each test should test one thing
+    - Tests should be independent and not rely on order
+  </Accordion>
+</AccordionGroup>
+
+## Code of Conduct
+
+Laravel has adopted a Code of Conduct that all contributors are expected to follow. This ensures the Laravel community remains welcoming and inclusive.
+
+<AccordionGroup>
+  <Accordion title="Our Standards">
+    - Be respectful and welcoming
+    - Use inclusive language
+    - Accept constructive criticism gracefully
+    - Focus on what's best for the community
+    - Show empathy towards others
+  </Accordion>
+
+  <Accordion title="Unacceptable Behavior">
+    - Harassment or discrimination of any kind
+    - Trolling, insulting comments, or personal attacks
+    - Public or private harassment
+    - Publishing others' private information
+    - Other conduct inappropriate in a professional setting
+  </Accordion>
+
+  <Accordion title="Enforcement">
+    Violations of the Code of Conduct may result in:
+    
+    - Warning from maintainers
+    - Temporary ban from the community
+    - Permanent ban from the community
+    
+    <Info>Report violations to Taylor Otwell at [taylor@laravel.com](mailto:taylor@laravel.com)</Info>
+  </Accordion>
+</AccordionGroup>
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability within Laravel:
+
+<Note>**DO NOT** open a public issue or pull request.</Note>
+
+### Reporting Process
+
+1. **Email**: Send details to [taylor@laravel.com](mailto:taylor@laravel.com)
+2. **Include**:
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
+
+<Info>All security vulnerabilities will be promptly addressed and a fix will be released as quickly as possible.</Info>
+
+### Security Disclosure
+
+Laravel follows responsible disclosure practices:
+
+- Vulnerabilities are fixed before public disclosure
+- Credit is given to reporters (if desired)
+- Security advisories are published after fixes are released
+
+## Community Resources
+
+<AccordionGroup>
+  <Accordion title="Getting Help">
+    - [Laravel Documentation](https://laravel.com/docs) - Official documentation
+    - [Laravel News](https://laravel-news.com) - Latest Laravel news and tutorials
+    - [Laracasts](https://laracasts.com) - Video tutorials and courses
+    - [Laravel.io](https://laravel.io) - Community forum
+    - [Discord](https://discord.gg/laravel) - Real-time chat
+  </Accordion>
+
+  <Accordion title="Stay Updated">
+    - Follow [@laravelphp](https://twitter.com/laravelphp) on Twitter
+    - Subscribe to [Laravel News](https://laravel-news.com)
+    - Watch the [GitHub repository](https://github.com/laravel/framework)
+  </Accordion>
+
+  <Accordion title="Contributing to Ecosystem">
+    Beyond the core framework, you can contribute to:
+    
+    - [Laravel Breeze](https://github.com/laravel/breeze) - Starter kit
+    - [Laravel Jetstream](https://github.com/laravel/jetstream) - Application scaffolding
+    - [Laravel Horizon](https://github.com/laravel/horizon) - Queue monitoring
+    - [Laravel Nova](https://nova.laravel.com) - Administration panel
+    - [Laravel Vapor](https://vapor.laravel.com) - Serverless deployment
+  </Accordion>
+</AccordionGroup>
+
+## Recognition
+
+Contributors are recognized in several ways:
+
+- Name in the GitHub contributors list
+- Mention in release notes for significant contributions
+- Featured on Laravel News for major features
+- Special recognition in Laravel documentation
+
+<Info>All contributions, no matter how small, are valued and appreciated by the Laravel community.</Info>
+
+## Additional Resources
+
+- [Contribution Guide](https://laravel.com/docs/contributions) - Official contribution guide
+- [GitHub Flow](https://guides.github.com/introduction/flow/) - Git workflow guide
+- [PSR-12](https://www.php-fig.org/psr/psr-12/) - PHP coding standard
+- [PHPUnit Documentation](https://phpunit.de/documentation.html) - Testing framework
+
+<Note>By contributing to Laravel, you agree that your contributions will be licensed under the MIT License.</Note>

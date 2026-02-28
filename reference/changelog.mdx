@@ -1,0 +1,269 @@
+---
+title: Changelog
+description: Version history and release notes for Laravel application skeleton
+---
+
+This changelog tracks changes to the Laravel application skeleton. For changes to the Laravel framework itself, see the [Laravel Framework Changelog](https://github.com/laravel/framework/blob/12.x/CHANGELOG.md).
+
+## [Unreleased](https://github.com/laravel/laravel/compare/v12.11.2...12.x)
+
+Upcoming changes that haven't been released yet.
+
+## [v12.11.2](https://github.com/laravel/laravel/compare/v12.11.1...v12.11.2) - 2026-01-19
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Composer dev script improvement**: Updated to ensure no timeout during development
+    - **Migration updates**: Updated jobs and cache migrations
+    - **Database optimization**: Removed failed jobs indexes for better performance
+    - **Configuration enhancement**: Added `APP_URL` fallback in filesystems config
+    - **GitHub Actions**: Updated outdated GitHub Actions versions
+  </Accordion>
+</AccordionGroup>
+
+## [v12.11.1](https://github.com/laravel/laravel/compare/v12.11.0...v12.11.1) - 2025-12-23
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **PostgreSQL**: Use environment variable for `DB_SSLMODE`
+    - **Filesystem fix**: Ensure APP_URL does not have trailing slash in filesystem configuration
+  </Accordion>
+</AccordionGroup>
+
+## [v12.11.0](https://github.com/laravel/laravel/compare/v12.10.1...v12.11.0) - 2025-11-25
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Cookie configuration**: Fixed cookies to be available for subdomains by default
+    - **PHP 8.5 compatibility**: Fixed PDO driver specific constant deprecation
+    - **Vite optimization**: Ignore Laravel compiled views for Vite processing
+  </Accordion>
+</AccordionGroup>
+
+## [v12.10.1](https://github.com/laravel/laravel/compare/v12.10.0...v12.10.1) - 2025-11-06
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **package.json**: Updated schema URL for better IDE support
+  </Accordion>
+</AccordionGroup>
+
+## [v12.10.0](https://github.com/laravel/laravel/compare/v12.9.1...v12.10.0) - 2025-11-04
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **New feature**: Added background queue driver support
+  </Accordion>
+</AccordionGroup>
+
+## [v12.9.1](https://github.com/laravel/laravel/compare/v12.9.0...v12.9.1) - 2025-10-23
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Documentation**: Replaced Bootcamp references with Laravel Learn
+    - **Queue configuration**: Commented out CLI workers for fresh applications
+  </Accordion>
+</AccordionGroup>
+
+## [v12.9.0](https://github.com/laravel/laravel/compare/v12.8.0...v12.9.0) - 2025-10-21
+
+<Note>See [full changelog](https://github.com/laravel/laravel/compare/v12.8.0...v12.9.0) for details.</Note>
+
+## [v12.8.0](https://github.com/laravel/laravel/compare/v12.7.1...v12.8.0) - 2025-10-20
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Testing improvement**: Test suite now uses broadcast's `null` driver by default
+  </Accordion>
+</AccordionGroup>
+
+## [v12.7.1](https://github.com/laravel/laravel/compare/v12.7.0...v12.7.1) - 2025-10-15
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Documentation**: Added `failover` driver to queue config comments
+  </Accordion>
+</AccordionGroup>
+
+## [v12.7.0](https://github.com/laravel/laravel/compare/v12.6.0...v12.7.0) - 2025-10-14
+
+<Note>See [full changelog](https://github.com/laravel/laravel/compare/v12.6.0...v12.7.0) for details.</Note>
+
+## [v12.6.0](https://github.com/laravel/laravel/compare/v12.5.0...v12.6.0) - 2025-10-02
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Fix**: Corrected setup script issues
+  </Accordion>
+</AccordionGroup>
+
+## [v12.5.0](https://github.com/laravel/laravel/compare/v12.4.0...v12.5.0) - 2025-09-30
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Configuration**: Fixed type casting for environment variables in config files
+    - **Security**: Fixed CVEs affecting Vite dependencies
+    - **Configuration**: Updated .editorconfig to target compose.yaml
+    - **Composer**: Added pre-package-uninstall script
+  </Accordion>
+</AccordionGroup>
+
+## [v12.4.0](https://github.com/laravel/laravel/compare/v12.3.1...v12.4.0) - 2025-08-29
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Redis**: Added default retry configuration for Redis connections
+  </Accordion>
+</AccordionGroup>
+
+## [v12.3.1](https://github.com/laravel/laravel/compare/v12.3.0...v12.3.1) - 2025-08-21
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Dependency update**: Bumped Laravel Pint version
+    - **Process management**: Ensure all related processes are closed when terminating dev command
+    - **Configuration**: Use application name from configuration in more places
+    - **Composer**: Brought back postAutoloadDump script
+  </Accordion>
+</AccordionGroup>
+
+## [v12.3.0](https://github.com/laravel/laravel/compare/v12.2.0...v12.3.0) - 2025-08-03
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Security**: Fixed critical security vulnerability in form-data dependency
+    - **Composer**: Changed post-autoload-dump script to Artisan command
+  </Accordion>
+</AccordionGroup>
+
+## [v12.2.0](https://github.com/laravel/laravel/compare/v12.1.0...v12.2.0) - 2025-07-11
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Vite 7**: Added support for Vite 7
+  </Accordion>
+</AccordionGroup>
+
+## [v12.1.0](https://github.com/laravel/laravel/compare/v12.0.11...v12.1.0) - 2025-07-03
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Testing**: Disabled Nightwatch in testing environment
+    - **Configuration**: Reordered environment variables in phpunit.xml for logical grouping
+    - **Naming**: Changed to hyphenate prefixes and cookie names
+    - **Type casting**: Fixed type casting for environment variables
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.11](https://github.com/laravel/laravel/compare/v12.0.10...v12.0.11) - 2025-06-10
+
+<Note>See [full changelog](https://github.com/laravel/laravel/compare/v12.0.10...v12.0.11) for details.</Note>
+
+## [v12.0.10](https://github.com/laravel/laravel/compare/v12.0.9...v12.0.10) - 2025-06-09
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Configuration**: Fixed alphabetical order in configuration files
+    - **Git**: Reduced redundancy in .gitignore file
+    - **Type hints**: Added void return type to satisfy static analysis
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.9](https://github.com/laravel/laravel/compare/v12.0.8...v12.0.9) - 2025-05-26
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Cache**: Removed deprecated APC cache driver
+    - **package.json**: Added JSON Schema for IDE support
+    - **Language**: Minor language file updates
+    - **Git**: Enhanced .gitignore to exclude common OS and log files
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.8](https://github.com/laravel/laravel/compare/v12.0.7...v12.0.8) - 2025-05-12
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **README**: Cleaned up URL formatting
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.7](https://github.com/laravel/laravel/compare/v12.0.6...v12.0.7) - 2025-04-15
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Composer**: Added `composer run test` command
+    - **README**: Updated Partner Directory information
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.6](https://github.com/laravel/laravel/compare/v12.0.5...v12.0.6) - 2025-04-08
+
+<Note>See [full changelog](https://github.com/laravel/laravel/compare/v12.0.5...v12.0.6) for details.</Note>
+
+## [v12.0.5](https://github.com/laravel/laravel/compare/v12.0.4...v12.0.5) - 2025-04-02
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Configuration**: Updated mail configuration to match latest core configuration
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.4](https://github.com/laravel/laravel/compare/v12.0.3...v12.0.4) - 2025-03-31
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Security**: Bumped Vite from 6.0.11 to 6.2.3 (vulnerability patch)
+    - **Security**: Bumped Vite from 6.2.3 to 6.2.4
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.3](https://github.com/laravel/laravel/compare/v12.0.2...v12.0.3) - 2025-03-17
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Changelog**: Removed reverted change from CHANGELOG.md
+    - **Styling**: Improved clarity in app.css file
+    - **Structure**: Structural improvements for code clarity
+    - **Security**: Bumped axios from 1.7.9 to 1.8.2 (vulnerability patch)
+    - **Cleanup**: Removed unnecessary @source references
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.2](https://github.com/laravel/laravel/compare/v12.0.1...v12.0.2) - 2025-03-04
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **GitHub Actions**: Made test action run out of the box independent of testing framework choice
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.1](https://github.com/laravel/laravel/compare/v12.0.0...v12.0.1) - 2025-02-24
+
+<AccordionGroup>
+  <Accordion title="Changes in this release">
+    - **Composer**: Prefer stable package stability
+  </Accordion>
+</AccordionGroup>
+
+## [v12.0.0](https://github.com/laravel/laravel/compare/v11.0.2...v12.0.0)
+
+<Info>Laravel 12 includes a variety of changes to the application skeleton. Please consult the [diff](https://github.com/laravel/laravel/compare/v11.0.2...v12.0.0) to see what's new.</Info>
+
+<Note>Major version releases include breaking changes and significant updates. Review the upgrade guide before updating production applications.</Note>
+
+## Release Cycle
+
+Laravel follows semantic versioning:
+
+- **Major releases** (12.0, 13.0): May contain breaking changes
+- **Minor releases** (12.1, 12.2): Add new features in a backward-compatible manner
+- **Patch releases** (12.0.1, 12.0.2): Backward-compatible bug fixes
+
+<Info>The Laravel application skeleton is updated separately from the Laravel framework. This changelog tracks skeleton changes only.</Info>
+
+## Related Resources
+
+- [Laravel Framework Changelog](https://github.com/laravel/framework/blob/12.x/CHANGELOG.md)
+- [Upgrade Guide](https://laravel.com/docs/upgrade)
+- [Release Notes](https://laravel.com/docs/releases)

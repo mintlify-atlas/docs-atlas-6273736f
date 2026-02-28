@@ -1,0 +1,235 @@
+---
+title: Composer Scripts
+description: Reference for all Composer scripts available in Laravel applications
+---
+
+Laravel includes several Composer scripts that automate common tasks during development and deployment. These scripts are defined in `composer.json` and can be executed using `composer run <script-name>`.
+
+## User-Defined Scripts
+
+These scripts are intended for manual execution during development and deployment workflows.
+
+### setup
+
+Sets up a fresh Laravel application by installing dependencies, configuring environment, and building assets.
+
+```bash
+composer run setup
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    Executes the following steps in sequence:
+    
+    1. `composer install` - Installs all PHP dependencies
+    2. Copies `.env.example` to `.env` if it doesn't exist
+    3. `php artisan key:generate` - Generates application encryption key
+    4. `php artisan migrate --force` - Runs database migrations
+    5. `npm install` - Installs JavaScript dependencies
+    6. `npm run build` - Builds frontend assets
+  </Accordion>
+</AccordionGroup>
+
+<Note>This script is perfect for setting up your application after cloning the repository for the first time.</Note>
+
+### dev
+
+Starts the development environment with all necessary services running concurrently.
+
+```bash
+composer run dev
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    Launches four concurrent processes with color-coded output:
+    
+    - **Server** (blue: #93c5fd) - `php artisan serve` - Local development server
+    - **Queue** (purple: #c4b5fd) - `php artisan queue:listen --tries=1 --timeout=0` - Queue worker
+    - **Logs** (pink: #fb7185) - `php artisan pail --timeout=0` - Real-time log viewer
+    - **Vite** (orange: #fdba74) - `npm run dev` - Asset bundler with hot reload
+    
+    <Info>Uses `npx concurrently` to run all processes simultaneously. Process timeouts are disabled for long-running development sessions.</Info>
+    
+    All processes will be terminated together when you stop the script (Ctrl+C).
+  </Accordion>
+</AccordionGroup>
+
+<Note>This is the recommended way to start your development environment as it provides everything you need in a single command.</Note>
+
+### test
+
+Runs the application's test suite with a clean configuration.
+
+```bash
+composer run test
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    1. `php artisan config:clear --ansi` - Clears the configuration cache
+    2. `php artisan test` - Runs all tests using PHPUnit/Pest
+    
+    <Info>Clearing the config cache ensures tests run with fresh configuration values.</Info>
+  </Accordion>
+</AccordionGroup>
+
+## Composer Hook Scripts
+
+These scripts are automatically executed by Composer during specific lifecycle events. You typically don't need to run these manually.
+
+### post-autoload-dump
+
+Executed automatically after Composer regenerates the autoload files.
+
+```bash
+# Runs automatically, but can be triggered manually:
+composer dump-autoload
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    1. `Illuminate\Foundation\ComposerScripts::postAutoloadDump` - Framework bootstrap
+    2. `php artisan package:discover --ansi` - Discovers package service providers
+    
+    <Info>This ensures Laravel packages are automatically registered when you install or update dependencies.</Info>
+  </Accordion>
+</AccordionGroup>
+
+### post-update-cmd
+
+Executed automatically after `composer update` completes.
+
+```bash
+# Runs automatically after:
+composer update
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    `php artisan vendor:publish --tag=laravel-assets --ansi --force`
+    
+    Publishes Laravel framework assets to your application, ensuring you have the latest versions after updates.
+  </Accordion>
+</AccordionGroup>
+
+### post-root-package-install
+
+Executed automatically when you first install the application using `composer create-project`.
+
+```bash
+# Runs automatically during:
+composer create-project laravel/laravel my-app
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    Creates a `.env` file from `.env.example` if one doesn't exist.
+    
+    <Info>This ensures your application has an environment configuration file immediately after installation.</Info>
+  </Accordion>
+</AccordionGroup>
+
+### post-create-project-cmd
+
+Executed automatically after creating a new project with `composer create-project`.
+
+```bash
+# Runs automatically during:
+composer create-project laravel/laravel my-app
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    1. `php artisan key:generate --ansi` - Generates a unique application key
+    2. Creates `database/database.sqlite` if it doesn't exist
+    3. `php artisan migrate --graceful --ansi` - Runs initial database migrations
+    
+    <Note>The `--graceful` flag allows migrations to fail silently, which is useful when SQLite database doesn't exist.</Note>
+  </Accordion>
+</AccordionGroup>
+
+### pre-package-uninstall
+
+Executed automatically before a package is uninstalled.
+
+```bash
+# Runs automatically before:
+composer remove some-package
+```
+
+<AccordionGroup>
+  <Accordion title="What it does">
+    `Illuminate\Foundation\ComposerScripts::prePackageUninstall`
+    
+    Performs cleanup tasks before removing a package, ensuring proper deregistration of package service providers.
+  </Accordion>
+</AccordionGroup>
+
+## Quick Reference
+
+### Manual Scripts
+
+| Script | Command | Purpose |
+|--------|---------|----------|
+| `setup` | `composer run setup` | Complete application setup |
+| `dev` | `composer run dev` | Start development environment |
+| `test` | `composer run test` | Run test suite |
+
+### Automatic Hook Scripts
+
+| Hook | Triggered By | Purpose |
+|------|--------------|----------|
+| `post-autoload-dump` | `composer dump-autoload` | Register packages |
+| `post-update-cmd` | `composer update` | Publish framework assets |
+| `post-root-package-install` | `composer create-project` | Create `.env` file |
+| `post-create-project-cmd` | `composer create-project` | Initialize new project |
+| `pre-package-uninstall` | `composer remove` | Clean up before uninstall |
+
+## Examples
+
+### Setting up a new development environment
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/your-app.git
+cd your-app
+
+# Run the setup script
+composer run setup
+
+# Start development
+composer run dev
+```
+
+### Running tests before deployment
+
+```bash
+# Run tests
+composer run test
+
+# If tests pass, deploy
+git push production main
+```
+
+### Manual package discovery
+
+```bash
+# After manually editing composer.json
+composer dump-autoload
+# This automatically runs post-autoload-dump
+```
+
+<Info>All scripts respect Composer's process timeout settings. The `dev` script explicitly disables timeouts for long-running processes.</Info>
+
+## Related Configuration
+
+The scripts reference several configuration files:
+
+- **composer.json** - Script definitions
+- **.env** - Environment configuration
+- **package.json** - NPM scripts and dependencies
+- **phpunit.xml** - Test configuration
+- **vite.config.js** - Asset bundler configuration
+
+<Note>You can add your own custom scripts to `composer.json` under the `scripts` section. Follow the same pattern as the existing scripts.</Note>

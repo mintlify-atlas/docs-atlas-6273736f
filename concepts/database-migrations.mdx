@@ -1,0 +1,441 @@
+---
+title: Database Migrations
+description: Version control your database schema using Laravel migrations to create, modify, and share database structures across your team
+---
+
+Migrations are like version control for your database, allowing you to define and share your application's database schema. They work hand-in-hand with Laravel's schema builder to build your application's database structure.
+
+## Creating Migrations
+
+Generate a new migration using Artisan:
+
+```bash
+# Create a migration for a new table
+php artisan make:migration create_users_table
+
+# Create a migration to modify a table
+php artisan make:migration add_votes_to_users_table
+```
+
+<Tip>
+Migrations are stored in `database/migrations`. Each filename contains a timestamp allowing Laravel to determine the order of migrations.
+</Tip>
+
+## Migration Structure
+
+A migration class contains two methods: `up` and `down`:
+
+```php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // Create or modify tables
+    }
+
+    public function down(): void
+    {
+        // Reverse the migration
+    }
+};
+```
+
+## Creating Tables
+
+### Users Table Migration
+
+Here's the complete users table migration from a fresh Laravel installation:
+
+```php database/migrations/0001_01_01_000000_create_users_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('sessions');
+    }
+};
+```
+
+<Info>
+This single migration creates three tables: `users`, `password_reset_tokens`, and `sessions`. The `down` method drops all three tables.
+</Info>
+
+### Cache Tables Migration
+
+```php database/migrations/0001_01_01_000001_create_cache_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('cache', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->integer('expiration')->index();
+        });
+
+        Schema::create('cache_locks', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->string('owner');
+            $table->integer('expiration')->index();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('cache');
+        Schema::dropIfExists('cache_locks');
+    }
+};
+```
+
+### Jobs Tables Migration
+
+```php database/migrations/0001_01_01_000002_create_jobs_table.php
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('queue')->index();
+            $table->longText('payload');
+            $table->unsignedTinyInteger('attempts');
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+        });
+
+        Schema::create('job_batches', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->string('name');
+            $table->integer('total_jobs');
+            $table->integer('pending_jobs');
+            $table->integer('failed_jobs');
+            $table->longText('failed_job_ids');
+            $table->mediumText('options')->nullable();
+            $table->integer('cancelled_at')->nullable();
+            $table->integer('created_at');
+            $table->integer('finished_at')->nullable();
+        });
+
+        Schema::create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('uuid')->unique();
+            $table->text('connection');
+            $table->text('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->useCurrent();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('jobs');
+        Schema::dropIfExists('job_batches');
+        Schema::dropIfExists('failed_jobs');
+    }
+};
+```
+
+<Note>
+The jobs migration creates tables for Laravel's queue system, including support for job batches and failed job tracking.
+</Note>
+
+## Column Types
+
+The schema builder supports many column types:
+
+<Tabs>
+  <Tab title="Numeric">
+    ```php
+    $table->id(); // Auto-incrementing BIGINT
+    $table->bigInteger('votes');
+    $table->integer('votes');
+    $table->smallInteger('votes');
+    $table->tinyInteger('votes');
+    $table->decimal('amount', 8, 2);
+    $table->double('amount', 8, 2);
+    $table->float('amount', 8, 2);
+    
+    // Unsigned variants
+    $table->unsignedBigInteger('votes');
+    $table->unsignedInteger('votes');
+    $table->unsignedTinyInteger('attempts');
+    ```
+  </Tab>
+  <Tab title="String">
+    ```php
+    $table->string('name'); // VARCHAR(255)
+    $table->string('email', 100); // VARCHAR(100)
+    $table->text('description');
+    $table->mediumText('content');
+    $table->longText('payload');
+    $table->char('code', 4);
+    $table->uuid('id');
+    ```
+  </Tab>
+  <Tab title="Date & Time">
+    ```php
+    $table->date('created_date');
+    $table->datetime('created_at');
+    $table->timestamp('created_at');
+    $table->timestamps(); // created_at & updated_at
+    $table->time('sunrise');
+    $table->year('birth_year');
+    ```
+  </Tab>
+  <Tab title="Boolean & Other">
+    ```php
+    $table->boolean('confirmed');
+    $table->json('options');
+    $table->jsonb('options'); // PostgreSQL
+    $table->binary('data');
+    $table->enum('status', ['pending', 'approved']);
+    ```
+  </Tab>
+</Tabs>
+
+## Column Modifiers
+
+Modify column definitions:
+
+```php
+$table->string('email')->nullable();
+$table->string('email')->unique();
+$table->string('name')->default('Guest');
+$table->timestamp('created_at')->useCurrent();
+$table->integer('votes')->unsigned();
+$table->string('description')->comment('User description');
+```
+
+Chain multiple modifiers:
+
+```php
+$table->string('email')->unique()->nullable();
+$table->timestamp('email_verified_at')->nullable();
+```
+
+## Indexes
+
+Add database indexes:
+
+<CodeGroup>
+
+```php Primary Key
+$table->id(); // Auto-incrementing primary key
+$table->string('email')->primary();
+```
+
+```php Unique Index
+$table->string('email')->unique();
+$table->unique(['email', 'name']);
+```
+
+```php Regular Index
+$table->string('queue')->index();
+$table->index(['column1', 'column2']);
+$table->integer('last_activity')->index();
+```
+
+```php Full Text (MySQL/PostgreSQL)
+$table->text('content')->fullText();
+```
+
+</CodeGroup>
+
+## Foreign Keys
+
+Define foreign key constraints:
+
+### Simple Foreign Key
+
+```php
+$table->foreignId('user_id')->constrained();
+```
+
+This creates a `user_id` column and adds a foreign key constraint to the `users` table's `id` column.
+
+### Custom Foreign Keys
+
+```php
+$table->foreignId('user_id')
+    ->constrained()
+    ->onUpdate('cascade')
+    ->onDelete('cascade');
+
+$table->foreignId('user_id')
+    ->constrained('users')
+    ->onDelete('set null');
+```
+
+Real example from the sessions table:
+
+```php database/migrations/0001_01_01_000000_create_users_table.php
+$table->foreignId('user_id')->nullable()->index();
+```
+
+### Dropping Foreign Keys
+
+```php
+$table->dropForeign(['user_id']);
+$table->dropForeign('posts_user_id_foreign');
+```
+
+## Modifying Tables
+
+### Adding Columns
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->string('phone')->nullable();
+    $table->integer('votes')->default(0);
+});
+```
+
+### Modifying Columns
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->string('name', 100)->change();
+    $table->integer('votes')->unsigned()->default(0)->change();
+});
+```
+
+### Renaming Columns
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->renameColumn('from', 'to');
+});
+```
+
+### Dropping Columns
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->dropColumn('votes');
+    $table->dropColumn(['votes', 'avatar']);
+});
+```
+
+## Dropping Tables
+
+```php
+Schema::drop('users');
+Schema::dropIfExists('users');
+```
+
+Real example:
+
+```php database/migrations/0001_01_01_000000_create_users_table.php
+public function down(): void
+{
+    Schema::dropIfExists('users');
+    Schema::dropIfExists('password_reset_tokens');
+    Schema::dropIfExists('sessions');
+}
+```
+
+## Running Migrations
+
+<CodeGroup>
+
+```bash Run Migrations
+php artisan migrate
+```
+
+```bash Rollback Last Batch
+php artisan migrate:rollback
+```
+
+```bash Rollback All
+php artisan migrate:reset
+```
+
+```bash Fresh Migration
+php artisan migrate:fresh
+
+# With seeding
+php artisan migrate:fresh --seed
+```
+
+```bash Refresh Database
+php artisan migrate:refresh
+
+# Refresh and seed
+php artisan migrate:refresh --seed
+```
+
+</CodeGroup>
+
+<Warning>
+The `migrate:fresh` command will drop all tables and re-run all migrations. Never use this in production!
+</Warning>
+
+## Migration Status
+
+Check which migrations have run:
+
+```bash
+php artisan migrate:status
+```
+
+## Squashing Migrations
+
+Combine multiple migrations into a single file:
+
+```bash
+php artisan schema:dump
+
+# Dump and delete migrations
+php artisan schema:dump --prune
+```
+
+<Tip>
+Squashing migrations is useful when you have many migration files and want to reduce clutter while preserving the schema.
+</Tip>

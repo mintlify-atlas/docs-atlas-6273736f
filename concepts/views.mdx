@@ -1,0 +1,347 @@
+---
+title: Views & Blade Templates
+description: Create dynamic HTML templates using Laravel's Blade templating engine with powerful features like layouts, components, and directives
+---
+
+Views contain the HTML of your application and separate your controller/application logic from your presentation logic. Views are stored in the `resources/views` directory and use the `.blade.php` extension.
+
+## Creating Views
+
+Views are simple PHP files with the `.blade.php` extension:
+
+```php resources/views/welcome.blade.php
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>{{ config('app.name', 'Laravel') }}</title>
+    </head>
+    <body>
+        <h1>Let's get started</h1>
+        <p>Laravel has an incredibly rich ecosystem.</p>
+    </body>
+</html>
+```
+
+## Returning Views
+
+Return views from routes or controllers using the `view` helper:
+
+```php
+Route::get('/', function () {
+    return view('welcome');
+});
+```
+
+### Passing Data to Views
+
+<CodeGroup>
+
+```php Array Syntax
+return view('users', ['name' => 'John Doe']);
+```
+
+```php With Method
+return view('users')
+    ->with('name', 'John Doe')
+    ->with('email', 'john@example.com');
+```
+
+```php Compact Helper
+$name = 'John Doe';
+$email = 'john@example.com';
+return view('users', compact('name', 'email'));
+```
+
+</CodeGroup>
+
+## Blade Directives
+
+Blade provides convenient directives for common PHP operations:
+
+### Displaying Data
+
+```blade
+<h1>{{ $title }}</h1>
+<p>Welcome, {{ $name }}</p>
+
+{{-- Display raw HTML --}}
+<div>{!! $htmlContent !!}</div>
+
+{{-- Display with default value --}}
+<p>{{ $description ?? 'No description available' }}</p>
+```
+
+<Warning>
+Always use `{{ }}` to display user-provided data. It automatically escapes HTML to prevent XSS attacks. Use `{!! !!}` only for trusted content.
+</Warning>
+
+### Conditional Statements
+
+```blade
+@if (count($users) === 1)
+    There is one user.
+@elseif (count($users) > 1)
+    There are {{ count($users) }} users.
+@else
+    There are no users.
+@endif
+
+@unless (Auth::check())
+    You are not signed in.
+@endunless
+
+@isset($records)
+    Records are defined.
+@endisset
+
+@empty($records)
+    There are no records.
+@endempty
+```
+
+### Authentication Directives
+
+Real example from the welcome template:
+
+```blade resources/views/welcome.blade.php
+@if (Route::has('login'))
+    <nav>
+        @auth
+            <a href="{{ url('/dashboard') }}">
+                Dashboard
+            </a>
+        @else
+            <a href="{{ route('login') }}">
+                Log in
+            </a>
+
+            @if (Route::has('register'))
+                <a href="{{ route('register') }}">
+                    Register
+                </a>
+            @endif
+        @endauth
+    </nav>
+@endif
+```
+
+<Info>
+The `@auth` and `@guest` directives provide convenient shortcuts for checking authentication status.
+</Info>
+
+### Loops
+
+<Tabs>
+  <Tab title="@foreach">
+    ```blade
+    @foreach ($users as $user)
+        <p>User: {{ $user->name }}</p>
+    @endforeach
+
+    @forelse ($users as $user)
+        <p>{{ $user->name }}</p>
+    @empty
+        <p>No users found.</p>
+    @endforelse
+    ```
+  </Tab>
+  <Tab title="@for">
+    ```blade
+    @for ($i = 0; $i < 10; $i++)
+        <p>The current value is {{ $i }}</p>
+    @endfor
+    ```
+  </Tab>
+  <Tab title="@while">
+    ```blade
+    @while (true)
+        <p>I'm looping forever.</p>
+    @endwhile
+    ```
+  </Tab>
+  <Tab title="Loop Variable">
+    ```blade
+    @foreach ($users as $user)
+        @if ($loop->first)
+            This is the first iteration.
+        @endif
+
+        @if ($loop->last)
+            This is the last iteration.
+        @endif
+
+        <p>User {{ $loop->iteration }}: {{ $user->name }}</p>
+    @endforeach
+    ```
+  </Tab>
+</Tabs>
+
+### Loop Control
+
+```blade
+@foreach ($users as $user)
+    @continue($user->type == 1)
+    
+    <p>{{ $user->name }}</p>
+    
+    @break($user->number == 5)
+@endforeach
+```
+
+## Blade Components
+
+### Including Subviews
+
+```blade
+@include('partials.header')
+
+<div>
+    Main content here
+</div>
+
+@include('partials.footer')
+```
+
+Pass data to included views:
+
+```blade
+@include('user.profile', ['user' => $user])
+```
+
+### Template Inheritance
+
+Create a layout:
+
+```blade resources/views/layouts/app.blade.php
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@yield('title', 'Laravel App')</title>
+</head>
+<body>
+    @yield('content')
+    
+    @stack('scripts')
+</body>
+</html>
+```
+
+Extend the layout:
+
+```blade resources/views/pages/home.blade.php
+@extends('layouts.app')
+
+@section('title', 'Home Page')
+
+@section('content')
+    <h1>Welcome Home</h1>
+@endsection
+
+@push('scripts')
+    <script src="/js/home.js"></script>
+@endpush
+```
+
+## Accessing Configuration
+
+Access configuration values in Blade:
+
+```blade
+<title>{{ config('app.name', 'Laravel') }}</title>
+```
+
+Real example from the welcome template:
+
+```blade resources/views/welcome.blade.php
+<title>{{ config('app.name', 'Laravel') }}</title>
+```
+
+## Localization
+
+Get the current locale:
+
+```blade
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+```
+
+## Asset Compilation
+
+Include compiled assets using Vite:
+
+```blade
+@if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+@else
+    <style>
+        /* Fallback styles */
+    </style>
+@endif
+```
+
+<Note>
+The `@vite` directive automatically includes the compiled CSS and JavaScript files in development and production.
+</Note>
+
+## Comments
+
+Blade comments are not included in the rendered HTML:
+
+```blade
+{{-- This comment will not be in the HTML --}}
+
+<!-- This HTML comment will be in the rendered HTML -->
+```
+
+Real example from the welcome template:
+
+```blade resources/views/welcome.blade.php
+{{-- Laravel Logo --}}
+<svg class="w-full text-[#F53003]">...</svg>
+```
+
+## PHP Directives
+
+Execute raw PHP code:
+
+```blade
+@php
+    $counter = 0;
+@endphp
+
+@php($counter = 0)
+```
+
+## Custom Directives
+
+Create custom Blade directives in a service provider:
+
+```php
+use Illuminate\Support\Facades\Blade;
+
+Blade::directive('datetime', function ($expression) {
+    return "<?php echo ($expression)->format('m/d/Y H:i'); ?>";
+});
+```
+
+Use the custom directive:
+
+```blade
+@datetime($user->created_at)
+```
+
+## Rendering Views in Console
+
+Render views in Artisan commands:
+
+```php routes/console.php
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+```
+
+<Tip>
+Use the `view` helper to render Blade templates from anywhere in your application, including console commands.
+</Tip>

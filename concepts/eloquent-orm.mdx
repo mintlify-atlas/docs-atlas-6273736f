@@ -1,0 +1,426 @@
+---
+title: Eloquent ORM
+description: Work with your database using Laravel's elegant ActiveRecord implementation for intuitive object-relational mapping
+---
+
+Eloquent is Laravel's ActiveRecord implementation that provides a beautiful, simple way to interact with your database. Each database table has a corresponding "Model" that is used to interact with that table.
+
+## Defining Models
+
+Models are stored in the `app/Models` directory.
+
+### Creating Models
+
+Generate a new model using Artisan:
+
+```bash
+php artisan make:model User
+```
+
+Generate a model with a migration:
+
+```bash
+php artisan make:model Post -m
+```
+
+### The User Model
+
+Here's the complete User model from a fresh Laravel installation:
+
+```php app/Models/User.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+}
+```
+
+<Info>
+The User model extends `Authenticatable` instead of the base `Model` class because it's used for authentication.
+</Info>
+
+## Model Conventions
+
+### Table Names
+
+By convention, the "snake case", plural name of the class is used as the table name:
+
+- `User` model → `users` table
+- `BlogPost` model → `blog_posts` table
+
+Override the table name:
+
+```php
+protected $table = 'my_users';
+```
+
+### Primary Keys
+
+Eloquent assumes each table has a primary key column named `id`:
+
+```php
+protected $primaryKey = 'user_id';
+```
+
+For non-incrementing or non-numeric keys:
+
+```php
+public $incrementing = false;
+protected $keyType = 'string';
+```
+
+### Timestamps
+
+Eloquent expects `created_at` and `updated_at` columns:
+
+```php
+// Disable timestamps
+public $timestamps = false;
+
+// Customize timestamp format
+protected $dateFormat = 'U';
+```
+
+## Mass Assignment
+
+Define which attributes can be mass-assigned:
+
+### Fillable Attributes
+
+```php app/Models/User.php
+protected $fillable = [
+    'name',
+    'email',
+    'password',
+];
+```
+
+### Guarded Attributes
+
+```php
+protected $guarded = ['admin', 'role'];
+
+// Guard all attributes
+protected $guarded = ['*'];
+
+// Unguard all attributes (not recommended)
+protected $guarded = [];
+```
+
+<Warning>
+Always define `$fillable` or `$guarded` to prevent mass assignment vulnerabilities.
+</Warning>
+
+## Retrieving Models
+
+### Basic Queries
+
+<CodeGroup>
+
+```php All Records
+$users = User::all();
+
+foreach ($users as $user) {
+    echo $user->name;
+}
+```
+
+```php Find by Primary Key
+$user = User::find(1);
+$users = User::find([1, 2, 3]);
+
+// Find or fail (throws ModelNotFoundException)
+$user = User::findOrFail(1);
+```
+
+```php Where Clauses
+$users = User::where('active', 1)
+    ->orderBy('name')
+    ->take(10)
+    ->get();
+
+$user = User::where('email', 'john@example.com')->first();
+```
+
+```php Advanced Queries
+$users = User::where('votes', '>', 100)
+    ->orWhere('name', 'John')
+    ->get();
+
+$users = User::whereBetween('votes', [1, 100])->get();
+$users = User::whereIn('id', [1, 2, 3])->get();
+$users = User::whereNull('updated_at')->get();
+```
+
+</CodeGroup>
+
+### Aggregates
+
+```php
+$count = User::count();
+$max = User::max('votes');
+$min = User::min('votes');
+$avg = User::avg('votes');
+$sum = User::sum('votes');
+```
+
+## Creating & Updating Models
+
+### Creating Models
+
+<Tabs>
+  <Tab title="Save Method">
+    ```php
+    $user = new User;
+    $user->name = 'John Doe';
+    $user->email = 'john@example.com';
+    $user->save();
+    ```
+  </Tab>
+  <Tab title="Create Method">
+    ```php
+    $user = User::create([
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+        'password' => Hash::make('password'),
+    ]);
+    ```
+  </Tab>
+  <Tab title="First or Create">
+    ```php
+    $user = User::firstOrCreate(
+        ['email' => 'john@example.com'],
+        ['name' => 'John Doe']
+    );
+    ```
+  </Tab>
+  <Tab title="Update or Create">
+    ```php
+    $user = User::updateOrCreate(
+        ['email' => 'john@example.com'],
+        ['name' => 'John Doe', 'active' => 1]
+    );
+    ```
+  </Tab>
+</Tabs>
+
+### Updating Models
+
+```php
+$user = User::find(1);
+$user->name = 'Jane Doe';
+$user->save();
+
+// Mass update
+User::where('active', 1)
+    ->update(['status' => 'verified']);
+```
+
+### Deleting Models
+
+```php
+$user = User::find(1);
+$user->delete();
+
+// Delete by primary key
+User::destroy(1);
+User::destroy([1, 2, 3]);
+
+// Mass delete
+User::where('votes', '>', 100)->delete();
+```
+
+## Attribute Casting
+
+Cast attributes to common data types:
+
+```php app/Models/User.php
+protected function casts(): array
+{
+    return [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+}
+```
+
+Available cast types:
+
+- `array`, `collection`
+- `boolean`
+- `date`, `datetime`, `timestamp`
+- `decimal:<precision>`
+- `integer`, `float`, `double`, `real`
+- `string`
+- `hashed` (automatically hashes values)
+
+<Note>
+The `hashed` cast automatically hashes passwords when setting them, eliminating the need to manually call `Hash::make()`.
+</Note>
+
+## Hidden Attributes
+
+Hide attributes from JSON serialization:
+
+```php app/Models/User.php
+protected $hidden = [
+    'password',
+    'remember_token',
+];
+```
+
+Or define visible attributes:
+
+```php
+protected $visible = ['name', 'email'];
+```
+
+## Model Factories
+
+Generate fake data for testing:
+
+```php database/factories/UserFactory.php
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
+class UserFactory extends Factory
+{
+    protected static ?string $password;
+
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => static::$password ??= Hash::make('password'),
+            'remember_token' => Str::random(10),
+        ];
+    }
+
+    public function unverified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+        ]);
+    }
+}
+```
+
+### Using Factories
+
+```php
+// Create a single user
+$user = User::factory()->create();
+
+// Create multiple users
+$users = User::factory(10)->create();
+
+// Create with attributes
+$user = User::factory()->create([
+    'name' => 'John Doe',
+]);
+
+// Create unverified user
+$user = User::factory()->unverified()->create();
+```
+
+<Tip>
+Use the `HasFactory` trait in your models to enable factory functionality:
+```php
+use HasFactory, Notifiable;
+```
+</Tip>
+
+## Relationships
+
+Define relationships between models:
+
+### One to Many
+
+```php
+class User extends Model
+{
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+}
+
+class Post extends Model
+{
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+```
+
+### Many to Many
+
+```php
+class User extends Model
+{
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+}
+```
+
+### Accessing Relationships
+
+```php
+$user = User::find(1);
+
+// Access as property
+foreach ($user->posts as $post) {
+    echo $post->title;
+}
+
+// Access as method (allows chaining)
+$posts = $user->posts()->where('active', 1)->get();
+```

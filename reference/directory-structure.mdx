@@ -1,0 +1,327 @@
+---
+title: Directory Structure
+description: Complete reference for Laravel's directory structure and organization
+---
+
+Laravel follows a conventional directory structure that organizes your application code, configuration, and resources. This page provides a complete overview of each directory and its purpose.
+
+## Root Directory
+
+The root directory contains several important files and directories that form the foundation of your Laravel application.
+
+### Root Files
+
+<AccordionGroup>
+  <Accordion title="artisan">
+    The Artisan command-line interface file. This is the entry point for running all Artisan commands.
+    
+    ```bash
+    php artisan serve
+    php artisan migrate
+    ```
+  </Accordion>
+
+  <Accordion title="composer.json">
+    Defines your application's PHP dependencies and autoloading configuration. This file is used by Composer to manage packages.
+    
+    <Info>See the [Composer Scripts](/reference/composer-scripts) page for available scripts.</Info>
+  </Accordion>
+
+  <Accordion title="package.json">
+    Defines your application's JavaScript dependencies and build scripts. Used by npm or yarn for frontend asset management.
+  </Accordion>
+
+  <Accordion title="phpunit.xml">
+    Configuration file for PHPUnit testing framework. Defines test suites, environment variables, and coverage settings.
+  </Accordion>
+
+  <Accordion title="vite.config.js">
+    Configuration file for Vite, the modern frontend build tool used by Laravel for compiling and bundling assets.
+  </Accordion>
+
+  <Accordion title=".env.example">
+    Example environment configuration file. Copy this to `.env` and customize for your application.
+    
+    <Note>Never commit your `.env` file to version control as it contains sensitive information.</Note>
+  </Accordion>
+</AccordionGroup>
+
+## Directory Structure
+
+### app/
+
+The `app` directory contains the core code of your application. This is where most of your application's classes will reside.
+
+<AccordionGroup>
+  <Accordion title="app/Http/">
+    Contains controllers, middleware, and form requests. This directory handles the HTTP layer of your application.
+    
+    **Subdirectories:**
+    - `Controllers/` - Controller classes that handle incoming HTTP requests
+    - `Middleware/` - HTTP middleware for filtering requests
+    - `Requests/` - Form request validation classes
+  </Accordion>
+
+  <Accordion title="app/Models/">
+    Contains Eloquent model classes that represent your database tables. Each model corresponds to a table in your database.
+    
+    **Example:**
+    - `User.php` - The default user model for authentication
+  </Accordion>
+
+  <Accordion title="app/Providers/">
+    Service provider classes that bootstrap various components of your application.
+    
+    **Default Providers:**
+    - `AppServiceProvider.php` - General application service provider
+  </Accordion>
+
+  <Accordion title="app/Console/">
+    Contains custom Artisan commands (created when you generate commands).
+  </Accordion>
+
+  <Accordion title="app/Exceptions/">
+    Contains exception handling classes for your application (created when needed).
+  </Accordion>
+</AccordionGroup>
+
+### bootstrap/
+
+The `bootstrap` directory contains the application bootstrapping files.
+
+<Accordion title="bootstrap/cache/">
+  Contains framework generated files for performance optimization, including compiled services and package manifests.
+  
+  <Note>This directory must be writable by your web server.</Note>
+</Accordion>
+
+### config/
+
+The `config` directory contains all of your application's configuration files.
+
+<AccordionGroup>
+  <Accordion title="Configuration Files">
+    - `app.php` - Core application configuration (name, environment, timezone)
+    - `auth.php` - Authentication guards and providers configuration
+    - `cache.php` - Cache store configuration (Redis, Memcached, file, etc.)
+    - `database.php` - Database connection configuration
+    - `filesystems.php` - File storage configuration (local, S3, etc.)
+    - `logging.php` - Logging channels and handlers configuration
+    - `mail.php` - Email service configuration
+    - `queue.php` - Queue connection configuration
+    - `services.php` - Third-party service credentials
+    - `session.php` - Session storage and behavior configuration
+  </Accordion>
+</AccordionGroup>
+
+<Info>Configuration values can reference environment variables using the `env()` helper function.</Info>
+
+### database/
+
+The `database` directory contains database-related files.
+
+<AccordionGroup>
+  <Accordion title="database/factories/">
+    Contains model factory classes for generating fake data during testing and seeding.
+  </Accordion>
+
+  <Accordion title="database/migrations/">
+    Contains database migration files that define your database schema. Migrations are version control for your database.
+    
+    ```bash
+    php artisan migrate
+    php artisan migrate:rollback
+    ```
+  </Accordion>
+
+  <Accordion title="database/seeders/">
+    Contains database seeder classes for populating your database with test or initial data.
+    
+    ```bash
+    php artisan db:seed
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### public/
+
+The `public` directory is the web server's document root. It contains the entry point (`index.php`) and publicly accessible assets.
+
+<Note>All HTTP requests are routed through `public/index.php`. Your web server should be configured to serve from this directory.</Note>
+
+**Contains:**
+- `index.php` - Application entry point
+- Compiled CSS and JavaScript files (generated by Vite)
+- Public assets (images, fonts, etc.)
+
+### resources/
+
+The `resources` directory contains views, raw assets, and language files.
+
+<AccordionGroup>
+  <Accordion title="resources/css/">
+    Contains raw CSS files that will be compiled by Vite.
+    
+    **Default file:**
+    - `app.css` - Main application stylesheet
+  </Accordion>
+
+  <Accordion title="resources/js/">
+    Contains JavaScript files that will be compiled by Vite.
+    
+    **Default files:**
+    - `app.js` - Main JavaScript entry point
+    - `bootstrap.js` - Bootstrap configuration (Axios, Echo, etc.)
+  </Accordion>
+
+  <Accordion title="resources/views/">
+    Contains Blade template files for your application's views.
+    
+    **Default file:**
+    - `welcome.blade.php` - Default welcome page
+  </Accordion>
+
+  <Accordion title="resources/lang/">
+    Contains language files for internationalization (created when needed).
+  </Accordion>
+</AccordionGroup>
+
+### routes/
+
+The `routes` directory contains all route definitions for your application.
+
+<AccordionGroup>
+  <Accordion title="routes/web.php">
+    Defines routes for your web interface. These routes receive session state, CSRF protection, and cookie encryption.
+    
+    ```php
+    Route::get('/', function () {
+        return view('welcome');
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="routes/console.php">
+    Defines console-based command routes using Artisan.
+    
+    ```php
+    Artisan::command('inspire', function () {
+        $this->comment(Inspiring::quote());
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="routes/api.php">
+    Defines API routes (created when needed). These routes are stateless and typically return JSON.
+  </Accordion>
+
+  <Accordion title="routes/channels.php">
+    Defines broadcast channels for event broadcasting (created when needed).
+  </Accordion>
+</AccordionGroup>
+
+### storage/
+
+The `storage` directory contains logs, compiled templates, file uploads, and other generated files.
+
+<AccordionGroup>
+  <Accordion title="storage/app/">
+    Contains application-generated files and user uploads.
+    
+    **Subdirectories:**
+    - `private/` - Private files not accessible via URL
+    - `public/` - Public files (symlinked to `public/storage`)
+  </Accordion>
+
+  <Accordion title="storage/framework/">
+    Contains framework-generated files and caches.
+    
+    **Subdirectories:**
+    - `cache/` - Application cache
+    - `sessions/` - Session files (when using file driver)
+    - `testing/` - Files generated during testing
+    - `views/` - Compiled Blade templates
+  </Accordion>
+
+  <Accordion title="storage/logs/">
+    Contains application log files.
+    
+    **Default file:**
+    - `laravel.log` - Main application log file
+  </Accordion>
+</AccordionGroup>
+
+<Note>The `storage` and `bootstrap/cache` directories must be writable by your web server.</Note>
+
+### tests/
+
+The `tests` directory contains automated tests for your application.
+
+<AccordionGroup>
+  <Accordion title="tests/Feature/">
+    Contains feature tests that test larger portions of your application, including HTTP requests and responses.
+    
+    ```bash
+    php artisan test --filter=Feature
+    ```
+  </Accordion>
+
+  <Accordion title="tests/Unit/">
+    Contains unit tests that test individual classes and methods in isolation.
+    
+    ```bash
+    php artisan test --filter=Unit
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Hidden Directories and Files
+
+### .github/
+
+Contains GitHub-specific files like workflow configurations for GitHub Actions.
+
+**Subdirectories:**
+- `workflows/` - GitHub Actions workflow definitions
+
+### .git/
+
+Contains Git version control system data. This directory is created when you initialize a Git repository.
+
+<Note>This directory should never be deployed to production servers.</Note>
+
+## Configuration Files
+
+<AccordionGroup>
+  <Accordion title=".editorconfig">
+    Defines coding style conventions for editors and IDEs (indentation, charset, etc.).
+  </Accordion>
+
+  <Accordion title=".gitattributes">
+    Defines Git attributes for path-specific settings.
+  </Accordion>
+
+  <Accordion title=".gitignore">
+    Specifies which files and directories Git should ignore.
+  </Accordion>
+
+  <Accordion title=".styleci.yml">
+    Configuration for StyleCI, an automated PHP code style service.
+  </Accordion>
+</AccordionGroup>
+
+## Quick Reference
+
+| Directory | Purpose |
+|-----------|----------|
+| `app/` | Core application code (models, controllers, etc.) |
+| `bootstrap/` | Application bootstrapping and cache |
+| `config/` | Configuration files |
+| `database/` | Migrations, factories, and seeders |
+| `public/` | Web server document root |
+| `resources/` | Views and raw assets |
+| `routes/` | Route definitions |
+| `storage/` | Generated files, logs, and uploads |
+| `tests/` | Automated tests |
+
+<Info>You can create additional directories within `app/` as your application grows. Laravel has no strict requirement on application structure.</Info>

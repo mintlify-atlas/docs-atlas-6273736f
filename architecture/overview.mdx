@@ -1,0 +1,217 @@
+---
+title: Architecture overview
+description: Learn about Laravel's modern architecture and how components work together to build robust applications
+---
+
+Laravel follows a modular, service-oriented architecture that emphasizes clean code organization and separation of concerns. This overview explains how the framework's core components interact to handle requests and build applications.
+
+## Request lifecycle
+
+Every Laravel application begins with a single entry point that bootstraps the framework and handles incoming requests.
+
+<Steps>
+  <Step title="Entry point">
+    All requests enter through `public/index.php`, which defines the application start time and loads the autoloader:
+
+    ```php public/index.php
+    <?php
+
+    use Illuminate\Foundation\Application;
+    use Illuminate\Http\Request;
+
+    define('LARAVEL_START', microtime(true));
+
+    // Determine if the application is in maintenance mode...
+    if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+        require $maintenance;
+    }
+
+    // Register the Composer autoloader...
+    require __DIR__.'/../vendor/autoload.php';
+
+    // Bootstrap Laravel and handle the request...
+    /** @var Application $app */
+    $app = require_once __DIR__.'/../bootstrap/app.php';
+
+    $app->handleRequest(Request::capture());
+    ```
+  </Step>
+
+  <Step title="Application bootstrapping">
+    The `bootstrap/app.php` file creates and configures the application instance:
+
+    ```php bootstrap/app.php
+    <?php
+
+    use Illuminate\Foundation\Application;
+    use Illuminate\Foundation\Configuration\Exceptions;
+    use Illuminate\Foundation\Configuration\Middleware;
+
+    return Application::configure(basePath: dirname(__DIR__))
+        ->withRouting(
+            web: __DIR__.'/../routes/web.php',
+            commands: __DIR__.'/../routes/console.php',
+            health: '/up',
+        )
+        ->withMiddleware(function (Middleware $middleware): void {
+            //
+        })
+        ->withExceptions(function (Exceptions $exceptions): void {
+            //
+        })->create();
+    ```
+
+    This fluent configuration:
+    - Sets the base path for the application
+    - Registers routing files for web and console
+    - Configures a health check endpoint at `/up`
+    - Allows middleware customization
+    - Handles exception configuration
+  </Step>
+
+  <Step title="Service providers">
+    Service providers are loaded from `bootstrap/providers.php` to register application services:
+
+    ```php bootstrap/providers.php
+    <?php
+
+    return [
+        App\Providers\AppServiceProvider::class,
+    ];
+    ```
+  </Step>
+
+  <Step title="Request handling">
+    The application processes the request through:
+    - Router matching
+    - Middleware pipeline
+    - Controller or closure execution
+    - Response generation
+  </Step>
+</Steps>
+
+## Core architectural patterns
+
+<AccordionGroup>
+  <Accordion title="Service container">
+    Laravel's service container is a powerful dependency injection container that manages class dependencies and performs automatic resolution. It serves as the central registry for all application services.
+
+    The container automatically resolves dependencies when instantiating classes, making it easy to inject dependencies through constructor parameters.
+  </Accordion>
+
+  <Accordion title="Service providers">
+    Service providers are the central place for configuring and bootstrapping application components. They contain two key methods:
+
+    - `register()`: Bind services into the container
+    - `boot()`: Perform actions after all services are registered
+
+    All service providers are listed in `bootstrap/providers.php`.
+  </Accordion>
+
+  <Accordion title="Facades">
+    Facades provide a static interface to classes in the service container, offering convenient, expressive syntax while maintaining testability.
+
+    Example from the routes file:
+    ```php routes/web.php
+    use Illuminate\Support\Facades\Route;
+
+    Route::get('/', function () {
+        return view('welcome');
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Contracts">
+    Laravel's contracts are a set of interfaces that define the core services provided by the framework. They allow you to define explicit dependencies and create loosely coupled code.
+  </Accordion>
+</AccordionGroup>
+
+## Configuration architecture
+
+Laravel uses a centralized configuration system with files stored in the `config/` directory.
+
+<Tip>
+  All configuration files return PHP arrays, allowing dynamic configuration using environment variables via the `env()` helper.
+</Tip>
+
+Example from `config/app.php`:
+
+```php config/app.php
+'name' => env('APP_NAME', 'Laravel'),
+'env' => env('APP_ENV', 'production'),
+'debug' => (bool) env('APP_DEBUG', false),
+'url' => env('APP_URL', 'http://localhost'),
+'timezone' => 'UTC',
+'locale' => env('APP_LOCALE', 'en'),
+```
+
+<Note>
+  Environment variables are loaded from the `.env` file in the application root. This keeps sensitive credentials out of version control.
+</Note>
+
+## Application modes
+
+<CardGroup cols={2}>
+  <Card title="Web application" icon="globe">
+    Handles HTTP requests through web routes and middleware, serving HTML views or JSON responses.
+  </Card>
+
+  <Card title="Console application" icon="terminal">
+    Executes commands via Artisan, Laravel's command-line interface.
+
+    ```php routes/console.php
+    use Illuminate\Foundation\Inspiring;
+    use Illuminate\Support\Facades\Artisan;
+
+    Artisan::command('inspire', function () {
+        $this->comment(Inspiring::quote());
+    })->purpose('Display an inspiring quote');
+    ```
+  </Card>
+
+  <Card title="Queue worker" icon="list">
+    Processes background jobs from configured queue drivers.
+  </Card>
+
+  <Card title="Task scheduler" icon="clock">
+    Runs scheduled tasks at defined intervals via cron.
+  </Card>
+</CardGroup>
+
+## Key architectural principles
+
+<Warning>
+  Laravel follows the principle of convention over configuration, providing sensible defaults while allowing complete customization when needed.
+</Warning>
+
+- **Dependency injection**: Classes receive their dependencies through constructors
+- **Inversion of control**: The framework controls application flow and instantiation
+- **Single responsibility**: Each class has one clearly defined purpose
+- **Interface segregation**: Contracts define minimal, focused interfaces
+- **Layered architecture**: Clear separation between routes, controllers, models, and services
+
+## Modern Laravel architecture
+
+Laravel's modern architecture (Laravel 11+) emphasizes:
+
+<Steps>
+  <Step title="Streamlined configuration">
+    Fluent application configuration in `bootstrap/app.php` replaces multiple kernel files.
+  </Step>
+
+  <Step title="Minimal service providers">
+    A single `AppServiceProvider` handles most application bootstrapping, reducing boilerplate.
+  </Step>
+
+  <Step title="Built-in routing">
+    Routing configuration is handled directly in the application bootstrap, supporting web, API, and console routes.
+  </Step>
+
+  <Step title="Health checks">
+    Built-in health check endpoints for monitoring application status.
+  </Step>
+</Steps>
+
+<Info>
+  The architecture balances developer experience with performance, using techniques like opcode caching, lazy loading, and efficient service resolution.
+</Info>

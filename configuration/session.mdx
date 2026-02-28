@@ -1,0 +1,379 @@
+---
+title: Session configuration
+description: Configure session storage with database, file, Redis, and cookie drivers
+---
+
+## Overview
+
+Sessions provide a way to store information about the user across multiple requests. Laravel supports various session backends through a unified API, configured in `config/session.php`.
+
+## Default Session Driver
+
+```bash .env
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+```
+
+```php config/session.php
+'driver' => env('SESSION_DRIVER', 'database'),
+'lifetime' => (int) env('SESSION_LIFETIME', 120),
+```
+
+## Available Session Drivers
+
+Laravel supports these session drivers:
+
+- `file` - File-based sessions in `storage/framework/sessions`
+- `cookie` - Encrypted cookie storage
+- `database` - Database table storage
+- `memcached` - Memcached server
+- `redis` - Redis server
+- `dynamodb` - Amazon DynamoDB
+- `array` - In-memory storage (testing only)
+
+## File Driver
+
+Stores sessions as files on disk.
+
+```bash .env
+SESSION_DRIVER=file
+```
+
+```php config/session.php
+'driver' => 'file',
+'files' => storage_path('framework/sessions'),
+```
+
+<Note>Ensure the `storage/framework/sessions` directory is writable by the web server.</Note>
+
+## Cookie Driver
+
+Stores encrypted session data in cookies.
+
+```bash .env
+SESSION_DRIVER=cookie
+```
+
+<Warning>Cookies are limited to 4KB. Use this driver only for small session data.</Warning>
+
+## Database Driver
+
+Stores sessions in a database table. Recommended for most applications.
+
+### Environment Variables
+
+```bash .env
+SESSION_DRIVER=database
+SESSION_CONNECTION=
+SESSION_TABLE=sessions
+```
+
+### Configuration
+
+```php config/session.php
+'driver' => 'database',
+'connection' => env('SESSION_CONNECTION'),
+'table' => env('SESSION_TABLE', 'sessions'),
+```
+
+### Setup
+
+Create the sessions table:
+
+```bash
+php artisan migrate
+```
+
+The sessions table migration is included by default at:
+`database/migrations/0001_01_01_000000_create_users_table.php`
+
+<Info>The database driver provides better scalability than file-based sessions for multi-server setups.</Info>
+
+## Redis Driver
+
+Uses Redis for high-performance session storage.
+
+```bash .env
+SESSION_DRIVER=redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+```php config/session.php
+'driver' => 'redis',
+'connection' => env('SESSION_CONNECTION'),
+```
+
+<Tip>Redis is ideal for applications with high traffic and multiple servers.</Tip>
+
+## Memcached Driver
+
+Uses Memcached for distributed session storage.
+
+```bash .env
+SESSION_DRIVER=memcached
+MEMCACHED_HOST=127.0.0.1
+MEMCACHED_PORT=11211
+```
+
+## DynamoDB Driver
+
+Uses Amazon DynamoDB for cloud-based session storage.
+
+```bash .env
+SESSION_DRIVER=dynamodb
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+AWS_DEFAULT_REGION=us-east-1
+```
+
+## Session Lifetime
+
+Control how long sessions remain valid:
+
+```bash .env
+SESSION_LIFETIME=120
+SESSION_EXPIRE_ON_CLOSE=false
+```
+
+```php config/session.php
+'lifetime' => (int) env('SESSION_LIFETIME', 120),
+'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+```
+
+<AccordionGroup>
+  <Accordion title="SESSION_LIFETIME">
+    Number of minutes before the session expires due to inactivity.
+    
+    **Default:** `120` minutes (2 hours)
+  </Accordion>
+
+  <Accordion title="SESSION_EXPIRE_ON_CLOSE">
+    When `true`, sessions expire when the browser closes.
+    
+    **Default:** `false`
+    
+    <Warning>This behavior depends on browser implementation and may not work reliably.</Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Session Encryption
+
+Encrypt all session data before storage:
+
+```bash .env
+SESSION_ENCRYPT=false
+```
+
+```php config/session.php
+'encrypt' => env('SESSION_ENCRYPT', false),
+```
+
+<Info>The cookie driver always encrypts data. Other drivers only encrypt if this option is enabled.</Info>
+
+## Session Sweeping
+
+Automatically clean up old sessions:
+
+```php config/session.php
+'lottery' => [2, 100],
+```
+
+This configuration means there's a 2 in 100 chance (2%) that old sessions will be garbage collected on each request.
+
+<Tip>Lower the probability for high-traffic applications to reduce overhead.</Tip>
+
+## Cookie Configuration
+
+Control session cookie behavior:
+
+### Cookie Name
+
+```bash .env
+SESSION_COOKIE=laravel-session
+```
+
+```php config/session.php
+'cookie' => env(
+    'SESSION_COOKIE',
+    Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+),
+```
+
+### Cookie Path and Domain
+
+```bash .env
+SESSION_PATH=/
+SESSION_DOMAIN=null
+```
+
+```php config/session.php
+'path' => env('SESSION_PATH', '/'),
+'domain' => env('SESSION_DOMAIN'),
+```
+
+### Security Options
+
+```bash .env
+SESSION_SECURE_COOKIE=null
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+SESSION_PARTITIONED_COOKIE=false
+```
+
+```php config/session.php
+'secure' => env('SESSION_SECURE_COOKIE'),
+'http_only' => env('SESSION_HTTP_ONLY', true),
+'same_site' => env('SESSION_SAME_SITE', 'lax'),
+'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
+```
+
+<AccordionGroup>
+  <Accordion title="secure">
+    Only send cookies over HTTPS connections.
+    
+    **Recommended:** `true` in production
+  </Accordion>
+
+  <Accordion title="http_only">
+    Prevent JavaScript access to the cookie.
+    
+    **Recommended:** `true` (prevents XSS attacks)
+  </Accordion>
+
+  <Accordion title="same_site">
+    Control cross-site request behavior.
+    
+    **Options:** `lax`, `strict`, `none`, `null`
+    
+    **Default:** `lax` (good balance of security and usability)
+  </Accordion>
+
+  <Accordion title="partitioned">
+    Enable partitioned cookies for cross-site contexts.
+    
+    **Default:** `false`
+    
+    <Info>Requires `secure` to be true and `same_site` to be `none`</Info>
+  </Accordion>
+</AccordionGroup>
+
+## Using Sessions
+
+### Storing Data
+
+```php
+use Illuminate\Support\Facades\Session;
+
+// Via session helper
+session(['key' => 'value']);
+
+// Via facade
+Session::put('key', 'value');
+
+// Via request
+$request->session()->put('key', 'value');
+```
+
+### Retrieving Data
+
+```php
+// Via helper
+$value = session('key');
+$value = session('key', 'default');
+
+// Via facade
+$value = Session::get('key');
+$value = Session::get('key', 'default');
+
+// Via request
+$value = $request->session()->get('key');
+```
+
+### Flash Data
+
+Store data for the next request only:
+
+```php
+$request->session()->flash('status', 'Task completed!');
+
+// Retrieve flash data
+$status = session('status');
+```
+
+### Deleting Data
+
+```php
+// Forget specific key
+session()->forget('key');
+
+// Clear all session data
+session()->flush();
+
+// Regenerate session ID
+session()->regenerate();
+```
+
+## Session Cache Store
+
+For cache-driven session backends:
+
+```bash .env
+SESSION_STORE=
+```
+
+```php config/session.php
+'store' => env('SESSION_STORE'),
+```
+
+<Info>Applies to `dynamodb`, `memcached`, and `redis` drivers. Must match a defined cache store.</Info>
+
+## Best Practices
+
+<Steps>
+  <Step title="Use database or Redis in production">
+    File and cookie drivers don't scale well across multiple servers.
+  </Step>
+
+  <Step title="Enable secure cookies in production">
+    Set `SESSION_SECURE_COOKIE=true` when using HTTPS.
+  </Step>
+
+  <Step title="Keep http_only enabled">
+    Prevents XSS attacks from stealing session data.
+  </Step>
+
+  <Step title="Regenerate session IDs after login">
+    Prevents session fixation attacks.
+    
+    ```php
+    $request->session()->regenerate();
+    ```
+  </Step>
+
+  <Step title="Set appropriate lifetime">
+    Balance security with user experience. Shorter is more secure.
+  </Step>
+</Steps>
+
+## Artisan Commands
+
+```bash
+# Clear session data
+php artisan session:clear
+
+# Create sessions table migration
+php artisan session:table
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Queue Configuration" icon="list-check" href="/configuration/queue">
+    Configure background job processing
+  </Card>
+  <Card title="Cache Configuration" icon="bolt" href="/configuration/cache">
+    Set up application caching
+  </Card>
+</CardGroup>
